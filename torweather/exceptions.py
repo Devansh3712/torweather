@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python
 class ServiceBuildError(Exception):
     """Raised when a service object cannot be built."""
 
