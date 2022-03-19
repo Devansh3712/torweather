@@ -18,29 +18,40 @@ from torweather.config import secrets
 from torweather.exceptions import EmailSendError
 from torweather.exceptions import ServiceBuildError
 from torweather.schemas import Message
+from torweather.schemas import Relay
 
 
 class Email:
     """Class for sending an email to a user using the Gmail API.
 
-    The Gmail API has a ratelimit of 250 requests per second, and
-    1 billion requests per day. An OAuth client ID is required to be
-    created in order to work with the API. Once it is created, a
-    `credentials.json` file is available to download which contains the
-    client ID and client secret needed by Google OAuth2 for authorization.
+    Attributes:
+        relay_data (Relay): Data of the relay and it's provider.
+        message_type (Message): Type of message to be sent to the provider.
     """
 
-    def __init__(self, _type: Message) -> None:
+    def __init__(self, relay_data: Relay, message_type: Message) -> None:
         """Initializes the Email class with the scope used by the API
         and a custom logger."""
-        self._type = _type
-        self._message = self._type.value
+        self._relay = relay_data
+        self._type = message_type
+        self._message = self._type.value["message"]
+        self._subject = self._type.value["subject"]
         self._current_directory: str = os.path.dirname(os.path.realpath(__file__))
         self._scope: Sequence[str] = ["https://mail.google.com/"]
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.INFO)
         self._set_logging_handler()
         self._create_token_json()
+
+    @property
+    def relay(self):
+        """Returns relay data."""
+        return self._relay
+
+    @property
+    def subject(self):
+        """Returns the subject of the mail."""
+        return self._subject
 
     @property
     def current_directory(self) -> str:
@@ -56,7 +67,7 @@ class Email:
         """Formats the content of message with relevant data of the TOR relay."""
         if self._type == Message.NODE_DOWN:
             self._message = self._message.format(
-                "Rumtumtugger", "000AE1F85243EEE64EBE5C14BFAA465858060C80"
+                self.relay.nickname, self.relay.fingerprint
             )
         return self._message
 
@@ -139,12 +150,8 @@ class Email:
             self.logger.error("Unable to build service object.")
             raise ServiceBuildError
 
-    def send(self, receiver: str, subject: str) -> bool:
+    def send(self) -> bool:
         """Send an email to a TOR relay provider.
-
-        Args:
-            receiver (str): Email of the receiver.
-            subject (str): Subject of the email.
 
         Raises:
             EmailSendError: Error occured while sending the email.
@@ -155,9 +162,9 @@ class Email:
         # Multipurpose Internet Mail Extension is an internet standard,
         # encoded file format used by email programs.
         message = MIMEText(self._format_message())
-        message["to"] = receiver
-        message["from"] = secrets.EMAIL
-        message["subject"] = subject
+        message["to"] = self.relay.email
+        message["from"] = f"TOR Weather <{secrets.EMAIL}>"
+        message["subject"] = self.subject
         # The message created using MIMEText is placed in a dictionary
         # after encoding it using base64, which is then passed in the
         # service object.
@@ -172,8 +179,8 @@ class Email:
                 .send(userId="me", body=message_base64)
                 .execute()
             )
-            self.logger.info(f"Email sent to {receiver}.")
+            self.logger.info(f"Email sent to {self.relay.email}.")
             return True
         except:
-            self.logger.error(f"Unable to send email to {receiver}.")
-            raise EmailSendError(receiver)
+            self.logger.error(f"Unable to send email to {self.relay.email}.")
+            raise EmailSendError(self.relay.email)
