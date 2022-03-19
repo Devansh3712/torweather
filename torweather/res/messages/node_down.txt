@@ -1,0 +1,4 @@
+It appears that the TOR node {0} (fingerprint: {1}) has been uncontactable through the TOR network for at least 48 hours.
+
+You can find more information about your TOR node at:
+https://metrics.torproject.org/rs.html#details/{1}

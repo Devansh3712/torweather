@@ -17,6 +17,7 @@ from googleapiclient.discovery import build
 from torweather.config import secrets
 from torweather.exceptions import EmailSendError
 from torweather.exceptions import ServiceBuildError
+from torweather.schemas import Message
 
 
 class Email:
@@ -29,9 +30,11 @@ class Email:
     client ID and client secret needed by Google OAuth2 for authorization.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, _type: Message) -> None:
         """Initializes the Email class with the scope used by the API
         and a custom logger."""
+        self._type = _type
+        self._message = self._type.value
         self._current_directory: str = os.path.dirname(os.path.realpath(__file__))
         self._scope: Sequence[str] = ["https://mail.google.com/"]
         self.logger = logging.getLogger(__name__)
@@ -48,6 +51,14 @@ class Email:
     def scope(self) -> Sequence[str]:
         """Returns the scope used by the Gmail API."""
         return self._scope
+
+    def _format_message(self) -> str:
+        """Formats the content of message with relevant data of the TOR relay."""
+        if self._type == Message.NODE_DOWN:
+            self._message = self._message.format(
+                "Rumtumtugger", "000AE1F85243EEE64EBE5C14BFAA465858060C80"
+            )
+        return self._message
 
     def _set_logging_handler(self) -> None:
         """Creates and sets a file handler for the custom logger."""
@@ -100,12 +111,6 @@ class Email:
             os.environ["CLIENT_SECRET"] = data["client_secret"]
             os.environ["EXPIRY"] = data["expiry"]
 
-    def _get_message(self) -> str:
-        """Returns the message to be sent."""
-        with open(os.path.join(self.current_directory, "res", "message.txt")) as file:
-            message: str = file.read()
-            return message
-
     def _get_service(self) -> build:
         """Creates and returns a service object for interacting with the
         Gmail API.
@@ -149,7 +154,7 @@ class Email:
         """
         # Multipurpose Internet Mail Extension is an internet standard,
         # encoded file format used by email programs.
-        message = MIMEText(self._get_message())
+        message = MIMEText(self._format_message())
         message["to"] = receiver
         message["from"] = secrets.EMAIL
         message["subject"] = subject
