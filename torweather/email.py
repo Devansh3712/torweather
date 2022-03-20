@@ -18,18 +18,18 @@ from torweather.config import secrets
 from torweather.exceptions import EmailSendError
 from torweather.exceptions import ServiceBuildError
 from torweather.schemas import Message
-from torweather.schemas import Relay
+from torweather.schemas import RelayData
 
 
 class Email:
     """Class for sending an email to a user using the Gmail API.
 
     Attributes:
-        relay_data (Relay): Data of the relay and it's provider.
+        relay_data (RelayData): Data of the relay and it's provider.
         message_type (Message): Type of message to be sent to the provider.
     """
 
-    def __init__(self, relay_data: Relay, message_type: Message) -> None:
+    def __init__(self, relay_data: RelayData, message_type: Message) -> None:
         """Initializes the Email class with the scope used by the API
         and a custom logger."""
         self._relay = relay_data
@@ -179,6 +179,7 @@ class Email:
                 .send(userId="me", body=message_base64)
                 .execute()
             )
+            self.relay.notif_sent = True
             self.logger.info(f"Email sent to {self.relay.email}.")
             return True
         except:
