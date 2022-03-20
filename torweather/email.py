@@ -18,60 +18,61 @@ from torweather.config import secrets
 from torweather.exceptions import EmailSendError
 from torweather.exceptions import ServiceBuildError
 from torweather.schemas import Message
-from torweather.schemas import Relay
+from torweather.schemas import RelayData
 
 
 class Email:
     """Class for sending an email to a user using the Gmail API.
 
     Attributes:
-        relay_data (Relay): Data of the relay and it's provider.
+        relay_data (RelayData): Data of the relay and it's provider.
         message_type (Message): Type of message to be sent to the provider.
     """
 
-    def __init__(self, relay_data: Relay, message_type: Message) -> None:
-        """Initializes the Email class with the scope used by the API
+    def __init__(self, relay_data: RelayData, message_type: Message) -> None:
+        """Initializes the Email class with the scopes used by the API
         and a custom logger."""
-        self._relay = relay_data
-        self._type = message_type
-        self._message = self._type.value["message"]
-        self._subject = self._type.value["subject"]
-        self._current_directory: str = os.path.dirname(os.path.realpath(__file__))
-        self._scope: Sequence[str] = ["https://mail.google.com/"]
-        self.logger = logging.getLogger(__name__)
-        self.logger.setLevel(logging.INFO)
-        self._set_logging_handler()
-        self._create_token_json()
-
-    @property
-    def relay(self):
-        """Returns relay data."""
-        return self._relay
+        self.relay = relay_data
+        self.type = message_type
+        self.__message = self.type.value["message"]
+        self.__subject = self.type.value["subject"]
+        self.__current_directory: str = os.path.dirname(os.path.realpath(__file__))
+        self.__scopes: Sequence[str] = ["https://mail.google.com/"]
+        self.__logger = logging.getLogger(__name__)
+        self.__logger.setLevel(logging.INFO)
+        self.__set_logging_handler()
+        self.__create_token_json()
 
     @property
     def subject(self):
         """Returns the subject of the mail."""
-        return self._subject
+        return self.__subject
 
     @property
     def current_directory(self) -> str:
         """Returns the path of the current directory."""
-        return self._current_directory
+        return self.__current_directory
 
     @property
-    def scope(self) -> Sequence[str]:
-        """Returns the scope used by the Gmail API."""
-        return self._scope
+    def scopes(self) -> Sequence[str]:
+        """Returns the scopes used by the Gmail API."""
+        return self.__scopes
 
-    def _format_message(self) -> str:
-        """Formats the content of message with relevant data of the TOR relay."""
-        if self._type == Message.NODE_DOWN:
-            self._message = self._message.format(
+    @property
+    def logger(self):
+        """Returns the logger object."""
+        return self.__logger
+
+    @property
+    def message(self) -> str:
+        """Returns the formatted content of message with relevant data of the TOR relay."""
+        if self.type == Message.NODE_DOWN:
+            self.__message = self.__message.format(
                 self.relay.nickname, self.relay.fingerprint
             )
-        return self._message
+        return self.__message
 
-    def _set_logging_handler(self) -> None:
+    def __set_logging_handler(self) -> None:
         """Creates and sets a file handler for the custom logger."""
         if not os.path.isdir(os.path.join(self.current_directory, "logs")):
             os.mkdir(os.path.join(self.current_directory, "logs"))
@@ -85,7 +86,7 @@ class Email:
         handler.setFormatter(formatter)
         self.logger.addHandler(handler)
 
-    def _create_token_json(self) -> None:
+    def __create_token_json(self) -> None:
         """Create `token.json` from existing token data in `.env` file."""
         data: Mapping[str, Any] = {
             "token": secrets.TOKEN,
@@ -93,7 +94,7 @@ class Email:
             "token_uri": "https://oauth2.googleapis.com/token",
             "client_id": secrets.CLIENT_ID,
             "client_secret": secrets.CLIENT_SECRET,
-            "scopes": self.scope,
+            "scopes": self.scopes,
             "expiry": secrets.EXPIRY,
         }
         with open(
@@ -101,7 +102,7 @@ class Email:
         ) as token_file:
             json.dump(data, token_file)
 
-    def _update_env(self) -> None:
+    def __update_env(self) -> None:
         """Update values of token environment variables in `.env` file."""
         with open(
             os.path.join(self.current_directory, "res", "token.json")
@@ -122,7 +123,7 @@ class Email:
             os.environ["CLIENT_SECRET"] = data["client_secret"]
             os.environ["EXPIRY"] = data["expiry"]
 
-    def _get_service(self) -> build:
+    def __get_service(self) -> build:
         """Creates and returns a service object for interacting with the
         Gmail API.
 
@@ -136,13 +137,13 @@ class Email:
         # The file `token.json` stores the user's access and refresh tokens,
         # and is created automatically when the authorization flow completes
         # for the first time.
-        creds = Credentials.from_authorized_user_file(token_path, self.scope)
+        creds = Credentials.from_authorized_user_file(token_path, self.scopes)
         if not creds.valid:
             creds.refresh(Request())
             self.logger.info("API token refreshed.")
             with open(token_path, "w") as token:
                 token.write(creds.to_json())
-            self._update_env()
+            self.__update_env()
         try:
             service = build("gmail", "v1", credentials=creds)
             return service
@@ -161,7 +162,7 @@ class Email:
         """
         # Multipurpose Internet Mail Extension is an internet standard,
         # encoded file format used by email programs.
-        message = MIMEText(self._format_message())
+        message = MIMEText(self.message)
         message["to"] = self.relay.email
         message["from"] = f"TOR Weather <{secrets.EMAIL}>"
         message["subject"] = self.subject
@@ -171,7 +172,7 @@ class Email:
         message_base64: Mapping[str, str] = {
             "raw": base64.urlsafe_b64encode(message.as_bytes()).decode("utf-8")
         }
-        service = self._get_service()
+        service = self.__get_service()
         try:
             result = (
                 service.users()
@@ -179,6 +180,7 @@ class Email:
                 .send(userId="me", body=message_base64)
                 .execute()
             )
+            self.relay.notif_sent = True
             self.logger.info(f"Email sent to {self.relay.email}.")
             return True
         except:

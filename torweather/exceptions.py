@@ -2,8 +2,8 @@
 class ServiceBuildError(Exception):
     """Raised when a service object cannot be built."""
 
-    def __str__(self):
-        return f"Unable to create Gmail API client service."
+    def __str__(self) -> str:
+        return "Unable to create Gmail API client service."
 
 
 class EmailSendError(Exception):
@@ -13,8 +13,8 @@ class EmailSendError(Exception):
         receiver (str): Email of the receiver.
     """
 
-    def __init__(self, receiver: str):
+    def __init__(self, receiver: str) -> None:
         self.to = receiver
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"Unable to send the email to {self.to}."

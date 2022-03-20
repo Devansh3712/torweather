@@ -2,6 +2,8 @@
 import enum
 import os
 from collections.abc import Mapping
+from datetime import datetime
+from typing import List
 
 from pydantic import BaseModel
 from pydantic import EmailStr
@@ -31,9 +33,14 @@ class Message(enum.Enum):
     OPERATOR_EVENTS: str
 
 
-class Relay(BaseModel):
+class RelayData(BaseModel):
     """Pydantic model for storing and validating relay data."""
 
     nickname: str
     fingerprint: str
+    last_seen: datetime
+    running: bool
+    last_restarted: datetime
+    effective_family: List[str]
     email: EmailStr
+    notif_sent: bool = False

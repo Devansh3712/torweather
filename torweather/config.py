@@ -12,6 +12,7 @@ class Secrets(BaseSettings):
     CLIENT_ID: str
     CLIENT_SECRET: str
     EXPIRY: str
+    MONGODB_URI: str
 
     class Config:
         env_file = ".env"
