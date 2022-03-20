@@ -22,6 +22,7 @@ def test_valid_send():
     global relay
     result = Email(relay, Message.NODE_DOWN).send()
     assert result == True
+    assert relay.notif_sent == True
 
 
 def test_invalid_send():
