@@ -16,6 +16,7 @@ jobs:
       CLIENT_ID: ${{ secrets.CLIENT_ID }}
       CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
       EXPIRY: ${{ secrets.EXPIRY }}
+      MONGODB_URI: ${{ secrets.MOGODB_URI }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
