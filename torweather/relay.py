@@ -11,6 +11,7 @@ from pymongo.collection import Collection
 from requests.structures import CaseInsensitiveDict  # type: ignore
 
 from torweather.config import secrets
+from torweather.exceptions import InvalidFingerprintError
 from torweather.schemas import RelayData
 
 
@@ -26,6 +27,7 @@ class Relay:
     def __init__(self, fingerprint: str, email: str, testing: bool = False) -> None:
         """Initializes the Relay class with the fields to be fetched by the
         onionoo API and a custom logger."""
+        # A TOR relay's fingerprint is a 40 digit hexadecimal string.
         assert len(fingerprint) == 40
         self.fingerprint: str = fingerprint
         self.email: str = email
@@ -102,12 +104,15 @@ class Relay:
             )
             result = response.json()["relays"]
             if response.status_code != 200 or not result:
-                raise
+                raise InvalidFingerprintError(self.fingerprint)
         result[0]["email"] = self.email
         return RelayData(**result[0])
 
     def subscribe(self) -> bool:
         """Subscribe to the TOR weather service.
+
+        On subscribing, a document is inserted into the MongoDB database,
+        with the fingerprint of the relay and pickled relay data.
 
         Returns:
             bool: False if relay fingerprint exists in collection else True.
@@ -130,6 +135,9 @@ class Relay:
     def unsubscribe(self) -> bool:
         """Unsubscribe from the TOR weather service.
 
+        On unsubscribing, the document with current relay's fingerprint is
+        deleted from the MongoDB database.
+
         Returns:
             bool: False if relay fingerprint does not exist in collection else True.
         """
@@ -146,7 +154,7 @@ class Relay:
         return True
 
     def update(self):
-        """Update relay data."""
+        """Update the relay data in the MongoDB database."""
         updated_relay_values = pickle.dumps(self.data)
         self.collection.update_one(
             {"fingerprint": self.fingerprint}, {"$set": {"data": updated_relay_values}}
