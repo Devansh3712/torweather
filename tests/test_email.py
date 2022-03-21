@@ -3,19 +3,9 @@ import pytest
 
 from torweather import Email
 from torweather import Message
-from torweather import RelayData
+from torweather import Relay
 
-data = {
-    "nickname": "Rumtumtugger",
-    "fingerprint": "000AE1F85243EEE64EBE5C14BFAA465858060C80",
-    "last_seen": "2022-03-15 14:00:00",
-    "running": False,
-    "last_restarted": "2022-03-15 13:01:25",
-    "version_status": "recommended",
-    "effective_family": ["000AE1F85243EEE64EBE5C14BFAA465858060C80"],
-    "email": "myemail@gmail.com",
-}
-relay = RelayData(**data)
+relay = Relay("000AE1F85243EEE64EBE5C14BFAA465858060C80", "myemail@gmail.com").data
 
 
 def test_valid_send():

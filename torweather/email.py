@@ -44,7 +44,7 @@ class Email:
         self.__create_token_json()
 
     @property
-    def subject(self):
+    def subject(self) -> str:
         """Returns the subject of the mail."""
         return self.__subject
 
@@ -59,7 +59,7 @@ class Email:
         return self.__scopes
 
     @property
-    def logger(self):
+    def logger(self) -> logging.Logger:
         """Returns the logger object."""
         return self.__logger
 

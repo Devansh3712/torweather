@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import logging
 import os
-from collections.abc import MutableMapping
+import pickle
 from typing import Any
 from typing import List
 
@@ -15,8 +15,16 @@ from torweather.schemas import RelayData
 
 
 class Relay:
-    def __init__(self, fingerprint: str, email: str) -> None:
-        """Initializes the Email class with the fields to be fetched by the
+    """Class for fetching data of a relay using the onionoo API and
+    maintaining the MongoDB database.
+
+    Attributes:
+        fingerprint (str): Fingerprint of the relay.
+        email (str): Email for subscribing to TOR weather service.
+    """
+
+    def __init__(self, fingerprint: str, email: str, testing: bool = False) -> None:
+        """Initializes the Relay class with the fields to be fetched by the
         onionoo API and a custom logger."""
         assert len(fingerprint) == 40
         self.fingerprint: str = fingerprint
@@ -32,7 +40,10 @@ class Relay:
         ]
         self.__url: str = "https://onionoo.torproject.org/details"
         self.__client = MongoClient(secrets.MONGODB_URI)
-        self.__database = self.__client["torweather"]
+        if testing:
+            self.__database = self.__client["testtorweather"]
+        else:
+            self.__database = self.__client["torweather"]
         self.__collection = self.__database["subscribers"]
         self.__logger = logging.getLogger(__name__)
         self.__logger.setLevel(logging.INFO)
@@ -49,15 +60,14 @@ class Relay:
         return self.__collection
 
     @property
-    def logger(self):
+    def logger(self) -> logging.Logger:
         """Returns the logger object."""
         return self.__logger
 
     @property
     def data(self):
         """Returns data of the relay as a pydantic model."""
-        relay_data = self.__fetch_data()
-        return RelayData(**relay_data)
+        return self.__fetch_data()
 
     def __set_logging_handler(self) -> None:
         """Creates and sets a file handler for the custom logger."""
@@ -74,11 +84,11 @@ class Relay:
         handler.setFormatter(formatter)
         self.logger.addHandler(handler)
 
-    def __fetch_data(self) -> MutableMapping[str, Any]:
+    def __fetch_data(self) -> RelayData:
         """Fetch data of the relay using the onionoo API.
 
         Returns:
-            MutableMapping[str, Any]: Dictionary of relay data.
+            RelayData: Pydantic model of relay data.
         """
         with requests.Session() as session:
             session.headers = CaseInsensitiveDict(  # type: ignore
@@ -94,7 +104,7 @@ class Relay:
             if response.status_code != 200 or not result:
                 raise
         result[0]["email"] = self.email
-        return result[0]
+        return RelayData(**result[0])
 
     def subscribe(self) -> bool:
         """Subscribe to the TOR weather service.
@@ -106,10 +116,14 @@ class Relay:
         # collection.
         if self.collection.find_one({"fingerprint": self.fingerprint}):
             return False
-        relay_data = self.__fetch_data()
-        self.collection.insert_one(relay_data)
+        # Store the relay data as a pydantic model object in the subscribers
+        # collection.
+        relay_data = pickle.dumps(self.data)  # Pickle the RelayData object.
+        self.collection.insert_one(
+            {"data": relay_data, "fingerprint": self.data.fingerprint}
+        )
         self.logger.info(
-            f"Node {relay_data['nickname']} (fingerprint: {relay_data['fingerprint']}) subscribed."
+            f"Node {self.data.nickname} (fingerprint: {self.data.fingerprint}) subscribed."
         )
         return True
 
@@ -123,16 +137,17 @@ class Relay:
         # `torweather` collection.
         if not self.collection.find_one({"fingerprint": self.fingerprint}):
             return False
-        relay_data = self.collection.find_one({"fingerprint": self.fingerprint})
+        document = self.collection.find_one({"fingerprint": self.fingerprint})
+        relay_data = pickle.loads(document["data"])  # Unpickle the RelayData object.
         self.collection.delete_one({"fingerprint": self.fingerprint})
         self.logger.info(
-            f"Node {relay_data['nickname']} (fingerprint: {relay_data['fingerprint']}) unsubscribed."
+            f"Node {relay_data.nickname} (fingerprint: {relay_data.fingerprint}) unsubscribed."
         )
         return True
 
-    def __update(self):
+    def update(self):
         """Update relay data."""
-        updated_relay_values = self.__fetch_data()
+        updated_relay_values = self.data
         self.collection.update_one(
             {"fingerprint": self.fingerprint}, {"$set": updated_relay_values}
         )

@@ -42,5 +42,6 @@ class RelayData(BaseModel):
     running: bool
     last_restarted: datetime
     effective_family: List[str]
+    version_status: str
     email: EmailStr
     notif_sent: bool = False
