@@ -18,7 +18,7 @@ class Message(enum.Enum):
     ) as content:
         NODE_DOWN: Mapping[str, str] = {
             "message": content.read(),
-            "subject": "TOR Weather: Node down",
+            "subject": "[TOR Weather] Node down",
         }
     SECURITY_VULNERABILITY: str
     END_OF_LIFE_VER: str
@@ -44,4 +44,4 @@ class RelayData(BaseModel):
     effective_family: List[str]
     version_status: str
     email: EmailStr
-    notif_sent: bool = False
+    node_down_notif: bool = False

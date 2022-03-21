@@ -18,3 +18,18 @@ class EmailSendError(Exception):
 
     def __str__(self) -> str:
         return f"Unable to send the email to {self.to}."
+
+
+class InvalidFingerprintError(Exception):
+    """Raised when the relay fingerprint isn't found using the onionoo
+    API.
+
+    Attributes:
+        fingerprint (str): Fingerprint of the relay.
+    """
+
+    def __init__(self, fingerprint: str) -> None:
+        self.fingerprint = fingerprint
+
+    def __str__(self) -> str:
+        return f"{self.fingerprint} is not a valid TOR fingerprint."

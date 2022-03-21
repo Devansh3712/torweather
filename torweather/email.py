@@ -3,6 +3,8 @@ import base64
 import json
 import logging
 import os
+import smtplib
+import ssl
 from collections.abc import Mapping
 from collections.abc import Sequence
 from email.mime.text import MIMEText
@@ -22,7 +24,11 @@ from torweather.schemas import RelayData
 
 
 class Email:
-    """Class for sending an email to a user using the Gmail API.
+    """Class for sending an email to a relay provider.
+
+    During the prototype phase, Gmail API is used for testing as Gmail will
+    deprecate the access of sending emails through SMTP. In the actual
+    development phase, emails will be sent through SMTP.
 
     Attributes:
         relay_data (RelayData): Data of the relay and it's provider.
@@ -87,7 +93,7 @@ class Email:
         self.logger.addHandler(handler)
 
     def __create_token_json(self) -> None:
-        """Create `token.json` from existing token data in `.env` file."""
+        """Create Gmail APIs `token.json` from existing token data in `.env` file."""
         data: Mapping[str, Any] = {
             "token": secrets.TOKEN,
             "refresh_token": secrets.REFRESH_TOKEN,
@@ -103,7 +109,7 @@ class Email:
             json.dump(data, token_file)
 
     def __update_env(self) -> None:
-        """Update values of token environment variables in `.env` file."""
+        """Update values of Gmail APIs token environment variables in `.env` file."""
         with open(
             os.path.join(self.current_directory, "res", "token.json")
         ) as token_file:
@@ -152,7 +158,8 @@ class Email:
             raise ServiceBuildError
 
     def send(self) -> bool:
-        """Send an email to a TOR relay provider.
+        """Send an email to a TOR relay provider using Gmail API
+        (prototype).
 
         Raises:
             EmailSendError: Error occured while sending the email.
@@ -180,7 +187,37 @@ class Email:
                 .send(userId="me", body=message_base64)
                 .execute()
             )
-            self.relay.notif_sent = True
+            self.relay.node_down_notif = True
+            self.logger.info(f"Email sent to {self.relay.email}.")
+            return True
+        except:
+            self.logger.error(f"Unable to send email to {self.relay.email}.")
+            raise EmailSendError(self.relay.email)
+
+    def send_smtp(self, server: str) -> bool:
+        """Send an email to a TOR relay provider using SMTP. For
+        the SMTP server, either localhost or APIs like Mailgun can
+        be used.
+
+        Args:
+            server (str): Server domain string.
+
+        Raises:
+            EmailSendError: Error occured while sending the email.
+
+        Returns:
+            bool: True if email is sent succesfully.
+        """
+        message = MIMEText(self.message)
+        message["to"] = self.relay.email
+        message["from"] = f"TOR Weather <{secrets.EMAIL}>"
+        message["subject"] = self.subject
+        try:
+            context = ssl.create_default_context()
+            # Port 465 is used for Secure Sockets Layer (SSL).
+            with smtplib.SMTP_SSL(server, 465, context=context) as smtp_server:
+                smtp_server.login(secrets.EMAIL, secrets.PASSWORD)
+                smtp_server.send_message(message)
             self.logger.info(f"Email sent to {self.relay.email}.")
             return True
         except:
