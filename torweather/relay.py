@@ -147,7 +147,7 @@ class Relay:
 
     def update(self):
         """Update relay data."""
-        updated_relay_values = self.data
+        updated_relay_values = pickle.dumps(self.data)
         self.collection.update_one(
-            {"fingerprint": self.fingerprint}, {"$set": updated_relay_values}
+            {"fingerprint": self.fingerprint}, {"$set": {"data": updated_relay_values}}
         )
