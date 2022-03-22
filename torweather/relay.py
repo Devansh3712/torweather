@@ -19,8 +19,8 @@ class Relay:
     """Class for fetching data of a relay using the onionoo API and
     maintaining the MongoDB database.
 
-    In the MongoDB database, a document with relay's fingerprint and
-    the email of relay provider is saved.
+    In the MongoDB database, a document with relay's fingerprint, the
+    email(s) of relay provider and notifications subscribed to is saved.
 
     Attributes:
         fingerprint (str): Fingerprint of the relay.
