@@ -2,14 +2,14 @@
 import enum
 import os
 from collections.abc import Mapping
+from collections.abc import Sequence
 from datetime import datetime
-from typing import List
 
 from pydantic import BaseModel
 from pydantic import EmailStr
 
 
-class Message(enum.Enum):
+class Notif(enum.Enum):
     """Enum for types of messages for TOR weather."""
 
     current_directory = os.path.dirname(os.path.realpath(__file__))
@@ -40,8 +40,10 @@ class RelayData(BaseModel):
     fingerprint: str
     last_seen: datetime
     running: bool
+    consensus_weight: int
     last_restarted: datetime
-    effective_family: List[str]
+    bandwidth_rate: int
+    effective_family: Sequence[str]
     version_status: str
-    email: EmailStr
-    node_down_notif: bool = False
+    recommended_version: bool
+    email: Sequence[EmailStr]

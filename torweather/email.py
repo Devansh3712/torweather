@@ -19,7 +19,7 @@ from googleapiclient.discovery import build
 from torweather.config import secrets
 from torweather.exceptions import EmailSendError
 from torweather.exceptions import ServiceBuildError
-from torweather.schemas import Message
+from torweather.schemas import Notif
 from torweather.schemas import RelayData
 
 
@@ -35,7 +35,7 @@ class Email:
         message_type (Message): Type of message to be sent to the provider.
     """
 
-    def __init__(self, relay_data: RelayData, message_type: Message) -> None:
+    def __init__(self, relay_data: RelayData, message_type: Notif) -> None:
         """Initializes the Email class with the scopes used by the API
         and a custom logger."""
         self.relay = relay_data
@@ -72,7 +72,7 @@ class Email:
     @property
     def message(self) -> str:
         """Returns the formatted content of message with relevant data of the TOR relay."""
-        if self.type == Message.NODE_DOWN:
+        if self.type == Notif.NODE_DOWN:
             self.__message = self.__message.format(
                 self.relay.nickname, self.relay.fingerprint
             )
@@ -167,32 +167,32 @@ class Email:
         Returns:
             bool: True if email is sent succesfully.
         """
-        # Multipurpose Internet Mail Extension is an internet standard,
-        # encoded file format used by email programs.
-        message = MIMEText(self.message)
-        message["to"] = self.relay.email
-        message["from"] = f"TOR Weather <{secrets.EMAIL}>"
-        message["subject"] = self.subject
-        # The message created using MIMEText is placed in a dictionary
-        # after encoding it using base64, which is then passed in the
-        # service object.
-        message_base64: Mapping[str, str] = {
-            "raw": base64.urlsafe_b64encode(message.as_bytes()).decode("utf-8")
-        }
-        service = self.__get_service()
-        try:
-            result = (
-                service.users()
-                .messages()
-                .send(userId="me", body=message_base64)
-                .execute()
-            )
-            self.relay.node_down_notif = True
-            self.logger.info(f"Email sent to {self.relay.email}.")
-            return True
-        except:
-            self.logger.error(f"Unable to send email to {self.relay.email}.")
-            raise EmailSendError(self.relay.email)
+        for email in self.relay.email:
+            # Multipurpose Internet Mail Extension is an internet standard,
+            # encoded file format used by email programs.
+            message = MIMEText(self.message)
+            message["to"] = email
+            message["from"] = f"TOR Weather <{secrets.EMAIL}>"
+            message["subject"] = self.subject
+            # The message created using MIMEText is placed in a dictionary
+            # after encoding it using base64, which is then passed in the
+            # service object.
+            message_base64: Mapping[str, str] = {
+                "raw": base64.urlsafe_b64encode(message.as_bytes()).decode("utf-8")
+            }
+            service = self.__get_service()
+            try:
+                result = (
+                    service.users()
+                    .messages()
+                    .send(userId="me", body=message_base64)
+                    .execute()
+                )
+                self.logger.info(f"Email sent to {email}.")
+            except:
+                self.logger.error(f"Unable to send email to {email}.")
+                raise EmailSendError(email)
+        return True
 
     def send_smtp(self, server: str) -> bool:
         """Send an email to a TOR relay provider using SMTP. For
@@ -208,18 +208,19 @@ class Email:
         Returns:
             bool: True if email is sent succesfully.
         """
-        message = MIMEText(self.message)
-        message["to"] = self.relay.email
-        message["from"] = f"TOR Weather <{secrets.EMAIL}>"
-        message["subject"] = self.subject
-        try:
-            context = ssl.create_default_context()
-            # Port 465 is used for Secure Sockets Layer (SSL).
-            with smtplib.SMTP_SSL(server, 465, context=context) as smtp_server:
-                smtp_server.login(secrets.EMAIL, secrets.PASSWORD)
-                smtp_server.send_message(message)
-            self.logger.info(f"Email sent to {self.relay.email}.")
-            return True
-        except:
-            self.logger.error(f"Unable to send email to {self.relay.email}.")
-            raise EmailSendError(self.relay.email)
+        for email in self.relay.email:
+            message = MIMEText(self.message)
+            message["to"] = email
+            message["from"] = f"TOR Weather <{secrets.EMAIL}>"
+            message["subject"] = self.subject
+            try:
+                context = ssl.create_default_context()
+                # Port 465 is used for Secure Sockets Layer (SSL).
+                with smtplib.SMTP_SSL(server, 465, context=context) as smtp_server:
+                    smtp_server.login(secrets.EMAIL, secrets.PASSWORD)
+                    smtp_server.send_message(message)
+                self.logger.info(f"Email sent to {email}.")
+            except:
+                self.logger.error(f"Unable to send email to {email}.")
+                raise EmailSendError(email)
+        return True

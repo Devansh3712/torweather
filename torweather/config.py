@@ -3,7 +3,8 @@ from pydantic import BaseSettings
 
 
 class Secrets(BaseSettings):
-    """Class for validating environment file variables."""
+    """Class for parsing and validating environment variables
+    from `.env` file."""
 
     EMAIL: str
     PASSWORD: str
