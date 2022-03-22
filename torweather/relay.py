@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 import logging
 import os
-import pickle
+from collections.abc import Sequence
 from typing import Any
-from typing import List
 
 import requests  # type: ignore
 from pymongo import MongoClient
@@ -12,6 +11,7 @@ from requests.structures import CaseInsensitiveDict  # type: ignore
 
 from torweather.config import secrets
 from torweather.exceptions import InvalidFingerprintError
+from torweather.schemas import Notif
 from torweather.schemas import RelayData
 
 
@@ -19,26 +19,39 @@ class Relay:
     """Class for fetching data of a relay using the onionoo API and
     maintaining the MongoDB database.
 
+    In the MongoDB database, a document with relay's fingerprint and
+    the email of relay provider is saved.
+
     Attributes:
         fingerprint (str): Fingerprint of the relay.
-        email (str): Email for subscribing to TOR weather service.
+        email (Sequence[str]): Email(s) for subscribing to TOR weather service.
+        notifs (Sequence[Notif]): Notifications to subscribe to.
     """
 
-    def __init__(self, fingerprint: str, email: str, testing: bool = False) -> None:
+    def __init__(
+        self,
+        fingerprint: str,
+        email: Sequence[str],
+        notifs: Sequence[Notif],
+        testing: bool = False,
+    ) -> None:
         """Initializes the Relay class with the fields to be fetched by the
         onionoo API and a custom logger."""
-        # A TOR relay's fingerprint is a 40 digit hexadecimal string.
-        assert len(fingerprint) == 40
         self.fingerprint: str = fingerprint
-        self.email: str = email
-        self.__fields: List[str] = [
+        self.email: Sequence[str] = email
+        self.notifs: Sequence[Notif] = notifs
+        # Fields to fetch for a relay from the onionoo API.
+        self.__fields: Sequence[str] = [
             "nickname",
             "fingerprint",
             "last_seen",
             "running",
+            "consensus_weight",
             "last_restarted",
+            "bandwidth_rate",
             "effective_family",
             "version_status",
+            "recommended_version",
         ]
         self.__url: str = "https://onionoo.torproject.org/details"
         self.__client = MongoClient(secrets.MONGODB_URI)
@@ -112,7 +125,7 @@ class Relay:
         """Subscribe to the TOR weather service.
 
         On subscribing, a document is inserted into the MongoDB database,
-        with the fingerprint of the relay and pickled relay data.
+        with the fingerprint of the relay and the email to subscribe to.
 
         Returns:
             bool: False if relay fingerprint exists in collection else True.
@@ -121,14 +134,20 @@ class Relay:
         # collection.
         if self.collection.find_one({"fingerprint": self.fingerprint}):
             return False
-        # Store the relay data as a pydantic model object in the subscribers
-        # collection.
-        relay_data = pickle.dumps(self.data)  # Pickle the RelayData object.
+        # Create a dictionary with enum variable name as key and False as value.
+        # This dictionary will be used to keep track of notifications sent, thus
+        # the default value is False.
+        _notifs = {notif.name: False for notif in self.notifs}
         self.collection.insert_one(
-            {"data": relay_data, "fingerprint": self.data.fingerprint}
+            {
+                "fingerprint": self.data.fingerprint,
+                "email": self.data.email,
+                "notifs": _notifs,
+            }
         )
         self.logger.info(
-            f"Node {self.data.nickname} (fingerprint: {self.data.fingerprint}) subscribed."
+            f"Node {self.data.nickname} (fingerprint: {self.data.fingerprint}) subscribed to "
+            f"{', '.join(_notifs.keys())} notifications."
         )
         return True
 
@@ -145,17 +164,8 @@ class Relay:
         # `torweather` collection.
         if not self.collection.find_one({"fingerprint": self.fingerprint}):
             return False
-        document = self.collection.find_one({"fingerprint": self.fingerprint})
-        relay_data = pickle.loads(document["data"])  # Unpickle the RelayData object.
         self.collection.delete_one({"fingerprint": self.fingerprint})
         self.logger.info(
-            f"Node {relay_data.nickname} (fingerprint: {relay_data.fingerprint}) unsubscribed."
+            f"Node {self.data.nickname} (fingerprint: {self.data.fingerprint}) unsubscribed."
         )
         return True
-
-    def update(self):
-        """Update the relay data in the MongoDB database."""
-        updated_relay_values = pickle.dumps(self.data)
-        self.collection.update_one(
-            {"fingerprint": self.fingerprint}, {"$set": {"data": updated_relay_values}}
-        )
