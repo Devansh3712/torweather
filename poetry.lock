@@ -280,7 +280,7 @@ optional = false
 python-versions = ">=3.6.1"
 
 [package.dependencies]
-email-validator = {version = ">=1.0.3", optional = true, markers = "extra == \"email\""}
+python-dotenv = {version = ">=0.10.4", optional = true, markers = "extra == \"dotenv\""}
 typing-extensions = ">=3.7.4.3"
 
 [package.extras]
@@ -480,7 +480,7 @@ testing = ["coverage (>=4)", "coverage-enable-subprocess (>=1)", "flaky (>=3)", 
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.10"
-content-hash = "5ec12e39e67d7507cca70e0b596e0eca282fb0dac389f3973944105c9a3e5925"
+content-hash = "788695aa079fc492cff3fbf34153b8383f6c90c2792337cc07629043ad9485e3"
 
 [metadata.files]
 atomicwrites = [

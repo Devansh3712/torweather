@@ -8,11 +8,6 @@ class Secrets(BaseSettings):
 
     EMAIL: str
     PASSWORD: str
-    TOKEN: str
-    REFRESH_TOKEN: str
-    CLIENT_ID: str
-    CLIENT_SECRET: str
-    EXPIRY: str
     MONGODB_URI: str
 
     class Config:

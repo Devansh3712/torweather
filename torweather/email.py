@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-import logging
-import os
 import smtplib
 import ssl
 from collections.abc import Sequence
@@ -11,13 +9,13 @@ import dotenv
 import torweather.utils as utils
 from torweather.config import secrets
 from torweather.exceptions import EmailSendError
-from torweather.exceptions import ServiceBuildError
+from torweather.logger import Logger
 from torweather.relay import Relay
 from torweather.schemas import Notif
 from torweather.schemas import RelayData
 
 
-class Email:
+class Email(Logger):
     """Class for sending an email to a relay provider. Secure Mail
     Transfer Protocol (SMTP) is used for sending emails.
 
@@ -30,38 +28,18 @@ class Email:
     def __init__(
         self, relay_data: RelayData, email: Sequence[str], notif_type: Notif
     ) -> None:
-        """Initializes the Email class with the scopes used by the API
-        and a custom logger."""
+        """Initializes the Email class and a logger instance."""
+        super().__init__(__name__)
         self.relay = relay_data
         self.email = email
         self.type = notif_type
-        self.__message = self.type.value["message"]
         self.__subject = self.type.value["subject"]
-        self.__current_directory: str = os.path.dirname(os.path.realpath(__file__))
-        self.__scopes: Sequence[str] = ["https://mail.google.com/"]
-        self.__logger = logging.getLogger(__name__)
-        self.__logger.setLevel(logging.INFO)
-        self.__set_logging_handler()
+        self.__message = self.type.value["message"]
 
     @property
     def subject(self) -> str:
         """Returns the subject of the mail."""
         return self.__subject
-
-    @property
-    def current_directory(self) -> str:
-        """Returns the path of the current directory."""
-        return self.__current_directory
-
-    @property
-    def scopes(self) -> Sequence[str]:
-        """Returns the scopes used by the Gmail API."""
-        return self.__scopes
-
-    @property
-    def logger(self) -> logging.Logger:
-        """Returns the logger object."""
-        return self.__logger
 
     @property
     def message(self) -> str:
@@ -75,27 +53,13 @@ class Email:
             )
         return self.__message
 
-    def __set_logging_handler(self) -> None:
-        """Creates and sets a file handler for the custom logger."""
-        if not os.path.isdir(os.path.join(self.current_directory, "logs")):
-            os.mkdir(os.path.join(self.current_directory, "logs"))
-        handler = logging.FileHandler(
-            os.path.join(self.current_directory, "logs", "email.log")
-        )
-        handler.setLevel(logging.INFO)
-        formatter = logging.Formatter(
-            "%(levelname)s: %(asctime)s - %(message)s", datefmt="%m/%d/%Y %I:%M:%S %p"
-        )
-        handler.setFormatter(formatter)
-        self.logger.addHandler(handler)
-
     def send(self, server: str = "smtp.gmail.com") -> bool:
         """Send an email to a TOR relay provider using SMTP. For
         the SMTP server, either localhost or APIs like Mailgun can
         be used.
 
         Args:
-            server (str): Server domain string.
+            server (str, optional): Server domain string. Defaults to "smtp.gmail.com".
 
         Raises:
             EmailSendError: Error occured while sending the email.

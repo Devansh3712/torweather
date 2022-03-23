@@ -2,13 +2,6 @@
 from torweather.schemas import Notif
 
 
-class ServiceBuildError(Exception):
-    """Raised when a service object cannot be built."""
-
-    def __str__(self) -> str:
-        return "Unable to create Gmail API client service."
-
-
 class EmailSendError(Exception):
     """Raised when the service object is unable to send an email.
 
@@ -21,6 +14,20 @@ class EmailSendError(Exception):
 
     def __str__(self) -> str:
         return f"Unable to send the email to {self.to}."
+
+
+class InvalidEmailError(Exception):
+    """Raised when the email provided by relay provider is not valid.
+
+    Attributes:
+        email (str): Email of the relay provider.
+    """
+
+    def __init__(self, email: str) -> None:
+        self.email = email
+
+    def __str__(self) -> str:
+        return f"{self.email} is not a valid email."
 
 
 class InvalidFingerprintError(Exception):
@@ -55,3 +62,19 @@ class NotifNotSubscribedError(Exception):
 
     def __str__(self) -> str:
         return f"Relay {self.name} (fingerprint: {self.fingerprint}) has not subscribed to {self.notif} notifications."
+
+
+class RelayNotSubscribedError(Exception):
+    """Raised when the relay is not found in the MongoDB database.
+
+    Attributes:
+        nickname (str): Nickname of the relay.
+        fingerprint (str): Fingerprint of the relay.
+    """
+
+    def __init__(self, nickname: str, fingerprint: str) -> None:
+        self.name = nickname
+        self.fingerprint = fingerprint
+
+    def __str__(self) -> str:
+        return f"Relay {self.name} (fingerprint: {self.fingerprint}) has not subscribed to TOR weather service."

@@ -6,7 +6,6 @@ from collections.abc import Sequence
 from datetime import datetime
 
 from pydantic import BaseModel
-from pydantic import EmailStr
 
 
 class Notif(enum.Enum):
