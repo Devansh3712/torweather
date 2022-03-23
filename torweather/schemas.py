@@ -46,4 +46,3 @@ class RelayData(BaseModel):
     effective_family: Sequence[str]
     version_status: str
     recommended_version: bool
-    email: Sequence[EmailStr]

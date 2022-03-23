@@ -1,45 +1,40 @@
 #!/usr/bin/env python
-import base64
-import json
 import logging
 import os
 import smtplib
 import ssl
-from collections.abc import Mapping
 from collections.abc import Sequence
 from email.mime.text import MIMEText
-from typing import Any
-from typing import Optional
 
 import dotenv
-from google.auth.transport.requests import Request
-from google.oauth2.credentials import Credentials
-from googleapiclient.discovery import build
 
+import torweather.utils as utils
 from torweather.config import secrets
 from torweather.exceptions import EmailSendError
 from torweather.exceptions import ServiceBuildError
+from torweather.relay import Relay
 from torweather.schemas import Notif
 from torweather.schemas import RelayData
 
 
 class Email:
-    """Class for sending an email to a relay provider.
-
-    During the prototype phase, Gmail API is used for testing as Gmail will
-    deprecate the access of sending emails through SMTP. In the actual
-    development phase, emails will be sent through SMTP.
+    """Class for sending an email to a relay provider. Secure Mail
+    Transfer Protocol (SMTP) is used for sending emails.
 
     Attributes:
-        relay_data (RelayData): Data of the relay and it's provider.
-        message_type (Message): Type of message to be sent to the provider.
+        relay_data (RelayData): Data of the relay.
+        email (Sequence[str]): Email(s) of relay provider.
+        notif_type (Message): Type of notification to be sent to the provider.
     """
 
-    def __init__(self, relay_data: RelayData, message_type: Notif) -> None:
+    def __init__(
+        self, relay_data: RelayData, email: Sequence[str], notif_type: Notif
+    ) -> None:
         """Initializes the Email class with the scopes used by the API
         and a custom logger."""
         self.relay = relay_data
-        self.type = message_type
+        self.email = email
+        self.type = notif_type
         self.__message = self.type.value["message"]
         self.__subject = self.type.value["subject"]
         self.__current_directory: str = os.path.dirname(os.path.realpath(__file__))
@@ -47,7 +42,6 @@ class Email:
         self.__logger = logging.getLogger(__name__)
         self.__logger.setLevel(logging.INFO)
         self.__set_logging_handler()
-        self.__create_token_json()
 
     @property
     def subject(self) -> str:
@@ -74,7 +68,10 @@ class Email:
         """Returns the formatted content of message with relevant data of the TOR relay."""
         if self.type == Notif.NODE_DOWN:
             self.__message = self.__message.format(
-                self.relay.nickname, self.relay.fingerprint
+                self.relay.nickname,
+                self.relay.fingerprint,
+                self.relay.last_seen,
+                utils.node_down_duration(self.relay),
             )
         return self.__message
 
@@ -92,109 +89,7 @@ class Email:
         handler.setFormatter(formatter)
         self.logger.addHandler(handler)
 
-    def __create_token_json(self) -> None:
-        """Create Gmail APIs `token.json` from existing token data in `.env` file."""
-        data: Mapping[str, Any] = {
-            "token": secrets.TOKEN,
-            "refresh_token": secrets.REFRESH_TOKEN,
-            "token_uri": "https://oauth2.googleapis.com/token",
-            "client_id": secrets.CLIENT_ID,
-            "client_secret": secrets.CLIENT_SECRET,
-            "scopes": self.scopes,
-            "expiry": secrets.EXPIRY,
-        }
-        with open(
-            os.path.join(self.current_directory, "res", "token.json"), "w"
-        ) as token_file:
-            json.dump(data, token_file)
-
-    def __update_env(self) -> None:
-        """Update values of Gmail APIs token environment variables in `.env` file."""
-        with open(
-            os.path.join(self.current_directory, "res", "token.json")
-        ) as token_file:
-            data = json.load(token_file)
-        try:
-            env_file = dotenv.find_dotenv()
-            dotenv.load_dotenv(env_file)
-            dotenv.set_key(env_file, "TOKEN", data["token"])
-            dotenv.set_key(env_file, "REFRESH_TOKEN", data["refresh_token"])
-            dotenv.set_key(env_file, "CLIENT_ID", data["client_id"])
-            dotenv.set_key(env_file, "CLIENT_SECRET", data["client_secret"])
-            dotenv.set_key(env_file, "EXPIRY", data["expiry"])
-        except:  # For running tests using Github actions CI.
-            os.environ["TOKEN"] = data["token"]
-            os.environ["REFRESH_TOKEN"] = data["refresh_token"]
-            os.environ["CLIENT_ID"] = data["client_id"]
-            os.environ["CLIENT_SECRET"] = data["client_secret"]
-            os.environ["EXPIRY"] = data["expiry"]
-
-    def __get_service(self) -> build:
-        """Creates and returns a service object for interacting with the
-        Gmail API.
-
-        Raises:
-            ServiceBuildError: Error occured while building the service object.
-
-        Returns:
-            build: Service object for interacting with the API.
-        """
-        token_path: str = os.path.join(self.current_directory, "res", "token.json")
-        # The file `token.json` stores the user's access and refresh tokens,
-        # and is created automatically when the authorization flow completes
-        # for the first time.
-        creds = Credentials.from_authorized_user_file(token_path, self.scopes)
-        if not creds.valid:
-            creds.refresh(Request())
-            self.logger.info("API token refreshed.")
-            with open(token_path, "w") as token:
-                token.write(creds.to_json())
-            self.__update_env()
-        try:
-            service = build("gmail", "v1", credentials=creds)
-            return service
-        except:
-            self.logger.error("Unable to build service object.")
-            raise ServiceBuildError
-
-    def send(self) -> bool:
-        """Send an email to a TOR relay provider using Gmail API
-        (prototype).
-
-        Raises:
-            EmailSendError: Error occured while sending the email.
-
-        Returns:
-            bool: True if email is sent succesfully.
-        """
-        for email in self.relay.email:
-            # Multipurpose Internet Mail Extension is an internet standard,
-            # encoded file format used by email programs.
-            message = MIMEText(self.message)
-            message["to"] = email
-            message["from"] = f"TOR Weather <{secrets.EMAIL}>"
-            message["subject"] = self.subject
-            # The message created using MIMEText is placed in a dictionary
-            # after encoding it using base64, which is then passed in the
-            # service object.
-            message_base64: Mapping[str, str] = {
-                "raw": base64.urlsafe_b64encode(message.as_bytes()).decode("utf-8")
-            }
-            service = self.__get_service()
-            try:
-                result = (
-                    service.users()
-                    .messages()
-                    .send(userId="me", body=message_base64)
-                    .execute()
-                )
-                self.logger.info(f"Email sent to {email}.")
-            except:
-                self.logger.error(f"Unable to send email to {email}.")
-                raise EmailSendError(email)
-        return True
-
-    def send_smtp(self, server: str) -> bool:
+    def send(self, server: str = "smtp.gmail.com") -> bool:
         """Send an email to a TOR relay provider using SMTP. For
         the SMTP server, either localhost or APIs like Mailgun can
         be used.
@@ -208,7 +103,9 @@ class Email:
         Returns:
             bool: True if email is sent succesfully.
         """
-        for email in self.relay.email:
+        for email in self.email:
+            # Multipurpose Internet Mail Extension is an internet standard,
+            # encoded file format used by email programs.
             message = MIMEText(self.message)
             message["to"] = email
             message["from"] = f"TOR Weather <{secrets.EMAIL}>"
