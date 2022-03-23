@@ -6,7 +6,6 @@ from collections.abc import Sequence
 from datetime import datetime
 
 from pydantic import BaseModel
-from pydantic import EmailStr
 
 
 class Notif(enum.Enum):
@@ -46,4 +45,3 @@ class RelayData(BaseModel):
     effective_family: Sequence[str]
     version_status: str
     recommended_version: bool
-    email: Sequence[EmailStr]

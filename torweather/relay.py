@@ -1,45 +1,37 @@
 #!/usr/bin/env python
-import logging
-import os
+from collections.abc import Mapping
 from collections.abc import Sequence
-from typing import Any
 
 import requests  # type: ignore
+from email_validator import validate_email
 from pymongo import MongoClient
 from pymongo.collection import Collection
 from requests.structures import CaseInsensitiveDict  # type: ignore
 
 from torweather.config import secrets
+from torweather.exceptions import InvalidEmailError
 from torweather.exceptions import InvalidFingerprintError
+from torweather.exceptions import NotifNotSubscribedError
+from torweather.exceptions import RelayNotSubscribedError
+from torweather.logger import Logger
 from torweather.schemas import Notif
 from torweather.schemas import RelayData
 
 
-class Relay:
+class Relay(Logger):
     """Class for fetching data of a relay using the onionoo API and
-    maintaining the MongoDB database.
-
-    In the MongoDB database, a document with relay's fingerprint and
-    the email of relay provider is saved.
+    managing the MongoDB database.
 
     Attributes:
         fingerprint (str): Fingerprint of the relay.
-        email (Sequence[str]): Email(s) for subscribing to TOR weather service.
-        notifs (Sequence[Notif]): Notifications to subscribe to.
+        testing (bool): Use a test database for executing functions.
     """
 
-    def __init__(
-        self,
-        fingerprint: str,
-        email: Sequence[str],
-        notifs: Sequence[Notif],
-        testing: bool = False,
-    ) -> None:
+    def __init__(self, fingerprint: str, testing: bool = False) -> None:
         """Initializes the Relay class with the fields to be fetched by the
         onionoo API and a custom logger."""
-        self.fingerprint: str = fingerprint
-        self.email: Sequence[str] = email
-        self.notifs: Sequence[Notif] = notifs
+        super().__init__(__name__)
+        self.fingerprint = fingerprint
         # Fields to fetch for a relay from the onionoo API.
         self.__fields: Sequence[str] = [
             "nickname",
@@ -55,14 +47,10 @@ class Relay:
         ]
         self.__url: str = "https://onionoo.torproject.org/details"
         self.__client = MongoClient(secrets.MONGODB_URI)
-        if testing:
-            self.__database = self.__client["testtorweather"]
-        else:
-            self.__database = self.__client["torweather"]
+        self.__database = (
+            self.__client["testtorweather"] if testing else self.__client["torweather"]
+        )
         self.__collection = self.__database["subscribers"]
-        self.__logger = logging.getLogger(__name__)
-        self.__logger.setLevel(logging.INFO)
-        self.__set_logging_handler()
 
     @property
     def url(self) -> str:
@@ -75,32 +63,15 @@ class Relay:
         return self.__collection
 
     @property
-    def logger(self) -> logging.Logger:
-        """Returns the logger object."""
-        return self.__logger
-
-    @property
     def data(self):
         """Returns data of the relay as a pydantic model."""
         return self.__fetch_data()
 
-    def __set_logging_handler(self) -> None:
-        """Creates and sets a file handler for the custom logger."""
-        current_directory: str = os.path.dirname(os.path.realpath(__file__))
-        if not os.path.isdir(os.path.join(current_directory, "logs")):
-            os.mkdir(os.path.join(current_directory, "logs"))
-        handler = logging.FileHandler(
-            os.path.join(current_directory, "logs", "relay.log")
-        )
-        handler.setLevel(logging.INFO)
-        formatter = logging.Formatter(
-            "%(levelname)s: %(asctime)s - %(message)s", datefmt="%m/%d/%Y %I:%M:%S %p"
-        )
-        handler.setFormatter(formatter)
-        self.logger.addHandler(handler)
-
     def __fetch_data(self) -> RelayData:
         """Fetch data of the relay using the onionoo API.
+
+        Raises:
+            InvalidFingerprintError: Relay fingerprint not found on onionoo API.
 
         Returns:
             RelayData: Pydantic model of relay data.
@@ -118,18 +89,32 @@ class Relay:
             result = response.json()["relays"]
             if response.status_code != 200 or not result:
                 raise InvalidFingerprintError(self.fingerprint)
-        result[0]["email"] = self.email
         return RelayData(**result[0])
 
-    def subscribe(self) -> bool:
+    def subscribe(self, emails: Sequence[str], notifs: Sequence[Notif]) -> bool:
         """Subscribe to the TOR weather service.
 
-        On subscribing, a document is inserted into the MongoDB database,
-        with the fingerprint of the relay and the email to subscribe to.
+        On subscribing, a document with relay's fingerprint, the email(s) of the
+        relay provider and the type of notifications to subscribe are saved.
+
+        Args:
+            emails (Sequence[str]): Email(s) of relay provider.
+            notifs (Sequence[Notif]): Type(s) of notification(s) to subscribe.
+
+        Raises:
+            InvalidEmailError: Email syntax/DNS server is not valid.
 
         Returns:
             bool: False if relay fingerprint exists in collection else True.
         """
+        # Validate the email address provided by the relay provider.
+        # If the email is in wrong syntax/DNS server doesn't exist
+        # it raises an error.
+        for email in emails:
+            try:
+                email_object = validate_email(email)
+            except:
+                raise InvalidEmailError(email)
         # If the current fingerprint exists in a document in the `torweather`
         # collection.
         if self.collection.find_one({"fingerprint": self.fingerprint}):
@@ -137,17 +122,17 @@ class Relay:
         # Create a dictionary with enum variable name as key and False as value.
         # This dictionary will be used to keep track of notifications sent, thus
         # the default value is False.
-        _notifs = {notif.name: False for notif in self.notifs}
+        notifs_name: Mapping[str, bool] = {notif.name: False for notif in notifs}
         self.collection.insert_one(
             {
                 "fingerprint": self.data.fingerprint,
-                "email": self.data.email,
-                "notifs": _notifs,
+                "email": emails,
+                "notifs": notifs_name,
             }
         )
         self.logger.info(
-            f"Node {self.data.nickname} (fingerprint: {self.data.fingerprint}) subscribed to "
-            f"{', '.join(_notifs.keys())} notifications."
+            f"Node {self.data.nickname} (fingerprint: {self.fingerprint}) subscribed to "
+            f"{', '.join(notifs_name.keys())} notifications."
         )
         return True
 
@@ -166,6 +151,54 @@ class Relay:
             return False
         self.collection.delete_one({"fingerprint": self.fingerprint})
         self.logger.info(
-            f"Node {self.data.nickname} (fingerprint: {self.data.fingerprint}) unsubscribed."
+            f"Node {self.data.nickname} (fingerprint: {self.fingerprint}) unsubscribed."
+        )
+        return True
+
+    def subscribed_notifs(self) -> Sequence[Notif]:
+        """Returns the type of notifications subscribed by a relay provider.
+
+        Raises:
+            RelayNotSubscribedError: Relay fingerprint not found in MongoDB database.
+
+        Returns:
+            Sequence[Notif]: List of notifications subscribed.
+        """
+        if not self.collection.find_one({"fingerprint": self.fingerprint}):
+            raise RelayNotSubscribedError(self.data.nickname, self.fingerprint)
+        notifs: Mapping[str, bool] = self.collection.find_one(
+            {"fingerprint": self.fingerprint}
+        )["notifs"]
+        # getattr(Notif, notif) is used to create the enum type of Notif
+        # using the notification type stored in database.
+        result: Sequence[Notif] = [getattr(Notif, notif) for notif in notifs]
+        return result
+
+    def update_notif_status(self, notif_type: Notif, status: bool = True) -> bool:
+        """Update the status of a notification subscribed by the relay operator.
+
+        Args:
+            notif_type (Notif): The notification type to update.
+            status (bool, optional): Status of notification. Defaults to True.
+
+        Raises:
+            RelayNotSubscribedError: Relay fingerprint not found in MongoDB database.
+            NotifNotSubscribedError: Notification type not subscribed by relay provider.
+
+        Returns:
+            bool: True if notification's status is updated in the database.
+        """
+        if not self.collection.find_one({"fingerprint": self.fingerprint}):
+            raise RelayNotSubscribedError(self.data.nickname, self.fingerprint)
+        notifs: Mapping[str, bool] = self.collection.find_one(
+            {"fingerprint": self.fingerprint}
+        )["notifs"]
+        if notif_type.name not in notifs:
+            raise NotifNotSubscribedError(
+                self.data.nickname, self.fingerprint, notif_type
+            )
+        self.collection.update_one(
+            {"fingerprint": self.fingerprint},
+            {"$set": {f"notifs.{notif_type.name}": status}},
         )
         return True

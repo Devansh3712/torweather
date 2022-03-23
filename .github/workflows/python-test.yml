@@ -11,11 +11,6 @@ jobs:
     env:
       EMAIL: ${{ secrets.EMAIL }}
       PASSWORD: ${{ secrets.PASSWORD }}
-      TOKEN: ${{ secrets.TOKEN }}
-      REFRESH_TOKEN: ${{ secrets.REFRESH_TOKEN }}
-      CLIENT_ID: ${{ secrets.CLIENT_ID }}
-      CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
-      EXPIRY: ${{ secrets.EXPIRY }}
       MONGODB_URI: ${{ secrets.MONGODB_URI }}
     runs-on: ubuntu-latest
     steps:
