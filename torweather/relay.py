@@ -155,25 +155,6 @@ class Relay(Logger):
         )
         return True
 
-    def subscribed_notifs(self) -> Sequence[Notif]:
-        """Returns the type of notifications subscribed by a relay provider.
-
-        Raises:
-            RelayNotSubscribedError: Relay fingerprint not found in MongoDB database.
-
-        Returns:
-            Sequence[Notif]: List of notifications subscribed.
-        """
-        if not self.collection.find_one({"fingerprint": self.fingerprint}):
-            raise RelayNotSubscribedError(self.data.nickname, self.fingerprint)
-        notifs: Mapping[str, bool] = self.collection.find_one(
-            {"fingerprint": self.fingerprint}
-        )["notifs"]
-        # getattr(Notif, notif) is used to create the enum type of Notif
-        # using the notification type stored in database.
-        result: Sequence[Notif] = [getattr(Notif, notif) for notif in notifs]
-        return result
-
     def update_notif_status(self, notif_type: Notif, status: bool = True) -> bool:
         """Update the status of a notification subscribed by the relay operator.
 
