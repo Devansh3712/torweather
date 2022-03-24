@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <link rel="stylesheet" type="text/css" href="./static/styles.css">
+        <title>{% block title %}{% endblock %}</title>
+    </head>
+    <body>
+        <header>
+            <nav class="main-nav">
+                <img class="logo" src="./static/img/logo.png" height="48">
+            </nav>
+        </header>
+        <nav class="side-nav">
+            <ul class="side-nav-ul">
+                <li class="side-nav-li">
+                    <a href="/about">About</a>
+                </li>
+                <li class="side-nav-li">
+                    <a href="/subscribe">Subscribe</a>
+                </li>
+                <li class="side-nav-li">
+                    <a href="/unsubscribe">Unsubscribe</a>
+                </li>
+            </ul>
+        </nav>
+        <div class="main-content">
+            <h1>Tor Weather</h1>
+            {% block content %}
+            {% endblock %}
+        </div>
+    </body>
+</html>
