@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Tor Weather - Subscribe{% endblock %}
+{% block content %}
+<form action="/subscribe" method="POST">
+    <label for="email">Email:</label>
+    <input type="email" name="email">
+    <label for="fingerprint">Relay fingerprint:</label>
+    <input type="text" name="fingerprint">
+    <br><br>
+    <input type="checkbox" name="node-down">
+    <label for="node-down">Email me when relay is down</label>
+    <br><br>
+    <button type="submit">Subscribe</button>
+</form>
+{% if subscribed == True %}
+Relay {{ nickname }} (fingerprint: {{ fingerprint }}) successfully subscribed to Tor weather service.
+{% elif subscribed == False %}
+Relay {{ nickname }} (fingerprint: {{ fingerprint }}) has already subscribed to Tor weather service.
+{% endif %}
+{% endblock %}
