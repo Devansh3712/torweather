@@ -25,6 +25,22 @@ a {
     text-decoration: none;
 }
 
+button {
+    background-color: #7D4698;
+    color: #ffffff;
+    text-align: center;
+    font-family: "Source Sans Pro";
+    font-size: 10pt;
+    padding: 10px 24px;
+    border: none;
+    text-decoration: none;
+    display: inline-block;
+}
+
+button:hover {
+    background-color: #59316B;
+}
+
 .main-nav {
     height: 75px;
     background-color: #7D4698;
