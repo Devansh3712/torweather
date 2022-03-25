@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 from collections.abc import Mapping
+from collections.abc import MutableMapping
 from collections.abc import Sequence
+from typing import Any
 
 import requests  # type: ignore
 from email_validator import validate_email
@@ -91,7 +93,9 @@ class Relay(Logger):
                 raise InvalidFingerprintError(self.fingerprint)
         return RelayData(**result[0])
 
-    def subscribe(self, emails: Sequence[str], notifs: Sequence[Notif]) -> bool:
+    def subscribe(
+        self, emails: Sequence[str], notifs: Sequence[Notif], duration: int = 48
+    ) -> bool:
         """Subscribe to the TOR weather service.
 
         On subscribing, a document with relay's fingerprint, the email(s) of the
@@ -100,6 +104,7 @@ class Relay(Logger):
         Args:
             emails (Sequence[str]): Email(s) of relay provider.
             notifs (Sequence[Notif]): Type(s) of notification(s) to subscribe.
+            duration (int): Duration before sending a notification (hours). Defaults to 48.
 
         Raises:
             InvalidEmailError: Email syntax/DNS server is not valid.
@@ -119,20 +124,21 @@ class Relay(Logger):
         # collection.
         if self.collection.find_one({"fingerprint": self.fingerprint}):
             return False
+        document: MutableMapping[str, Any] = {
+            "fingerprint": self.data.fingerprint,
+            "email": emails,
+        }
         # Create a dictionary with enum variable name as key and False as value.
         # This dictionary will be used to keep track of notifications sent, thus
         # the default value is False.
-        notifs_name: Mapping[str, bool] = {notif.name: False for notif in notifs}
-        self.collection.insert_one(
-            {
-                "fingerprint": self.data.fingerprint,
-                "email": emails,
-                "notifs": notifs_name,
-            }
-        )
+        for notif in notifs:
+            document[notif.name] = {"sent": False}
+            if notif == Notif.NODE_DOWN:
+                document[notif.name]["duration"] = duration
+        self.collection.insert_one(document)
         self.logger.info(
             f"Node {self.data.nickname} (fingerprint: {self.fingerprint}) subscribed to "
-            f"{', '.join(notifs_name.keys())} notifications."
+            f"{', '.join([notif.name for notif in notifs])} notifications."
         )
         return True
 

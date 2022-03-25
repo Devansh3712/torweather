@@ -41,6 +41,11 @@ button:hover {
     background-color: #59316B;
 }
 
+input {
+    font-family: inherit;
+    font-size: 11pt;
+}
+
 .main-nav {
     height: 75px;
     background-color: #7D4698;
@@ -72,10 +77,16 @@ button:hover {
     padding: 5px;
 }
 
-.side-nav-li:hover {
+.side-nav-li a:hover {
     color: #59316B;
 }
 
 .main-content {
     margin-left: 200px;
+}
+
+.duration {
+    margin-top: 5px;
+    margin-bottom: 3px;
+    display: inline-block;
 }

@@ -7,4 +7,12 @@
     <br><br>
     <button type="submit">Unsubscribe</button>
 </form>
+<br>
+{% if unsubscribed == True %}
+<i class="fa-solid fa-check"></i>&nbsp;
+Relay <strong>{{ nickname }}</strong> (fingerprint: {{ fingerprint }}) successfully unsubscribed from Tor weather service.
+{% elif unsubscribed == False %}
+<i class="fa-solid fa-triangle-exclamation"></i>&nbsp;
+Relay <strong>{{ nickname }}</strong> (fingerprint: {{ fingerprint }}) has not subscribed to Tor weather service.
+{% endif %}
 {% endblock %}
