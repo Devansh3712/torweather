@@ -177,7 +177,7 @@ class Relay(Logger):
         """
         if not self.collection.find_one({"fingerprint": self.fingerprint}):
             raise RelayNotSubscribedError(self.data.nickname, self.fingerprint)
-        notifs: Mapping[str, bool] = self.collection.find_one(
+        notifs: Mapping[str, Any] = self.collection.find_one(
             {"fingerprint": self.fingerprint}
         )
         if notif_type.name not in notifs:
