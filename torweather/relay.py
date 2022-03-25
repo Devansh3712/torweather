@@ -179,13 +179,13 @@ class Relay(Logger):
             raise RelayNotSubscribedError(self.data.nickname, self.fingerprint)
         notifs: Mapping[str, bool] = self.collection.find_one(
             {"fingerprint": self.fingerprint}
-        )["notifs"]
+        )
         if notif_type.name not in notifs:
             raise NotifNotSubscribedError(
                 self.data.nickname, self.fingerprint, notif_type
             )
         self.collection.update_one(
             {"fingerprint": self.fingerprint},
-            {"$set": {f"notifs.{notif_type.name}": status}},
+            {"$set": {f"{notif_type.name}": {"sent": status}}},
         )
         return True
