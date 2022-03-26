@@ -1,1 +1,1 @@
-web: gunicorn torweather.app:app
+web: python -m torweather.app
