@@ -33,4 +33,5 @@ def internal_server_error(e):
 if __name__ == "__main__":
     app.register_blueprint(subscribe, url_prefix="/subscribe")
     app.register_blueprint(unsubscribe, url_prefix="/unsubscribe")
-    app.run(debug=False)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
