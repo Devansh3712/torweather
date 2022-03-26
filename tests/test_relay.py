@@ -7,6 +7,7 @@ import pytest
 
 from torweather import Notif
 from torweather import Relay
+from torweather import RelayNotSubscribedError
 
 test_relays: Sequence[Tuple[str, Sequence[Notif], Mapping[str, str]]] = [
     (
@@ -69,5 +70,5 @@ def test_valid_unsubscribe(
 def test_invalid_unsubscribe(
     fingerprint: str, notifs: Sequence[Notif], data: Mapping[str, str]
 ):
-    result = Relay(fingerprint, testing=True).unsubscribe()
-    assert result == False
+    with pytest.raises(RelayNotSubscribedError):
+        result = Relay(fingerprint, testing=True).unsubscribe()

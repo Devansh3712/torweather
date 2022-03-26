@@ -15,6 +15,7 @@ from torweather.exceptions import InvalidEmailError
 from torweather.exceptions import InvalidFingerprintError
 from torweather.exceptions import NotifNotSubscribedError
 from torweather.exceptions import RelayNotSubscribedError
+from torweather.exceptions import RelaySubscribedError
 from torweather.logger import Logger
 from torweather.schemas import Notif
 from torweather.schemas import RelayData
@@ -126,7 +127,7 @@ class Relay(Logger):
     def subscribe(
         self, email: str, notifs: Sequence[Notif], duration: int = 48
     ) -> bool:
-        """Subscribe to the TOR weather service.
+        """Subscribe to the Tor weather service.
 
         On subscribing, a document with relay's fingerprint, the email(s) of the
         relay provider and the type of notifications to subscribe are saved.
@@ -138,9 +139,10 @@ class Relay(Logger):
 
         Raises:
             InvalidEmailError: Email syntax/DNS server is not valid.
+            RelaySubscribedError: Relay fingerprint already exists in MongoDB database.
 
         Returns:
-            bool: False if relay fingerprint exists in collection else True.
+            bool: True if relay data is added to database.
         """
         # Validate the email address provided by the relay provider.
         # If the email is in wrong syntax/DNS server doesn't exist
@@ -152,7 +154,7 @@ class Relay(Logger):
         # If the current fingerprint exists in a document in the `torweather`
         # collection.
         if self.collection.find_one({"fingerprint": self.fingerprint}):
-            return False
+            raise RelaySubscribedError(self.data.nickname, self.fingerprint)
         document: MutableMapping[str, Any] = {
             "fingerprint": self.data.fingerprint,
             "email": email,
@@ -172,21 +174,52 @@ class Relay(Logger):
         return True
 
     def unsubscribe(self) -> bool:
-        """Unsubscribe from the TOR weather service.
+        """Unsubscribe from the Tor weather service.
 
         On unsubscribing, the document with current relay's fingerprint is
         deleted from the MongoDB database.
 
+        Raises:
+            RelayNotSubscribedError: Relay fingerprint not found in MongoDB database.
+
         Returns:
-            bool: False if relay fingerprint does not exist in collection else True.
+            bool: True if relay document is deleted from database.
         """
         # If the current fingerprint does not exist in a document in the
         # `torweather` collection.
         if not self.collection.find_one({"fingerprint": self.fingerprint}):
-            return False
+            raise RelayNotSubscribedError(self.data.nickname, self.fingerprint)
         self.collection.delete_one({"fingerprint": self.fingerprint})
         self.logger.info(
             f"Node {self.data.nickname} (fingerprint: {self.fingerprint}) unsubscribed."
+        )
+        return True
+
+    def unsubscribe_single(self, notif_type: Notif) -> bool:
+        """Unsubscribe from a single type of notification.
+
+        Args:
+            notif_type (Notif): The notification type to unsubscribe.
+
+        Raises:
+            RelayNotSubscribedError: Relay fingerprint not found in MongoDB database.
+            NotifNotSubscribedError: Notification type not subscribed by relay provider.
+
+        Returns:
+            bool: True if notification is unsubscribed.
+        """
+        if not self.collection.find_one({"fingerprint": self.fingerprint}):
+            raise RelayNotSubscribedError(self.data.nickname, self.fingerprint)
+        document: Mapping[str, Any] = self.collection.find_one(
+            {"fingerprint": self.fingerprint}
+        )
+        if notif_type.name not in document:
+            raise NotifNotSubscribedError(
+                self.data.nickname, self.fingerprint, notif_type
+            )
+        self.collection.update_one(
+            {"fingerprint": self.fingerprint},
+            {"$unset": {notif_type.name: 1}},
         )
         return True
 
@@ -206,10 +239,10 @@ class Relay(Logger):
         """
         if not self.collection.find_one({"fingerprint": self.fingerprint}):
             raise RelayNotSubscribedError(self.data.nickname, self.fingerprint)
-        notifs: Mapping[str, Any] = self.collection.find_one(
+        document: Mapping[str, Any] = self.collection.find_one(
             {"fingerprint": self.fingerprint}
         )
-        if notif_type.name not in notifs:
+        if notif_type.name not in document:
             raise NotifNotSubscribedError(
                 self.data.nickname, self.fingerprint, notif_type
             )

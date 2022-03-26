@@ -15,15 +15,21 @@ class Notif(enum.Enum):
 
     global current_directory
     with open(
-        os.path.join(current_directory, "res", "messages", "node_down.txt")
-    ) as content:
+        os.path.join(current_directory, "messages", "node_down.txt")
+    ) as node_down:
         NODE_DOWN: Mapping[str, str] = {
             "subject": "[Tor Weather] Node down",
-            "message": content.read(),
+            "message": node_down.read(),
         }
     SECURITY_VULNERABILITY: str
     END_OF_LIFE_VER: str
-    OUTDATED_VER: str
+    with open(
+        os.path.join(current_directory, "messages", "outdated_version.txt")
+    ) as outdated_ver:
+        OUTDATED_VER: Mapping[str, str] = {
+            "subject": "[Tor Weather] Node out of date",
+            "message": outdated_ver.read(),
+        }
     DNS_FAILURE: str
     FLAG_LOST: str
     DETECT_ISSUES: str

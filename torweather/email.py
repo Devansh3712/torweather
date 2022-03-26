@@ -50,6 +50,12 @@ class Email(Logger):
                 self.relay.last_seen,
                 utils.node_down_duration(self.relay),
             )
+        elif self.type == Notif.OUTDATED_VER:
+            self.__message = self.__message.format(
+                self.relay.nickname,
+                self.relay.fingerprint,
+                self.relay.version_status,
+            )
         return self.__message
 
     def send(self, server: str = "smtp.gmail.com") -> bool:
