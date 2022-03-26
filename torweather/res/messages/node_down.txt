@@ -1,7 +1,9 @@
-It appears that the TOR relay {0} (fingerprint: {1}) has it's running status as false on the Tor network for at least 48 hours.
+This is a Tor Weather report.
 
-Last seen: {2}
-Duration of relay being down: {3} hours
+It appears that the Tor relay {0} (fingerprint: {1}) you have been observing has been uncontactable through the Tor network for at least {2} hour(s).
+You may wish to look at it to see why.
 
-You can find more information about your TOR node at:
+Last seen: {3}
+
+You can find more information about your Tor relay at:
 https://metrics.torproject.org/rs.html#details/{1}

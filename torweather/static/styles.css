@@ -46,6 +46,11 @@ input {
     font-size: 11pt;
 }
 
+select {
+    font-family: inherit;
+    font-size: 11pt;
+}
+
 .main-nav {
     height: 75px;
     background-color: #7D4698;

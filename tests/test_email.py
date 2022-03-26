@@ -11,11 +11,13 @@ notif_type = Notif.NODE_DOWN
 
 def test_valid_send():
     global relay, notif_type
-    result = Email(relay.data, ["myemail@gmail.com"], notif_type).send()
+    relay.subscribe("myemail@gmail.com", [notif_type])
+    result = Email(relay.data, "myemail@gmail.com", notif_type).send()
+    relay.unsubscribe()
     assert result == True
 
 
 def test_invalid_send():
     global relay, notif_type
     with pytest.raises(Exception):
-        result = Email(relay.data, ["myemail"], notif_type).send()
+        result = Email(relay.data, "myemail", notif_type).send()

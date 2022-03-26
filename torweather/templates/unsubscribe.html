@@ -1,9 +1,12 @@
 {% extends "base.html" %}
 {% block title %}Tor Weather - Unsubscribe{% endblock %}
 {% block content %}
-<form action="/unsubscribe" method="POST">
+<form action="/unsubscribe" method="POST" onsubmit="validate()">
     <label for="fingerprint">Relay fingerprint:</label>
-    <input type="text" name="fingerprint">
+    <input type="text" name="fingerprint" size="30">
+    &nbsp;
+    <label for="email">Confirm Email:</label>
+    <input type="email" name="email" size="30">
     <br><br>
     <button type="submit">Unsubscribe</button>
 </form>
@@ -14,5 +17,9 @@ Relay <strong>{{ nickname }}</strong> (fingerprint: {{ fingerprint }}) successfu
 {% elif unsubscribed == False %}
 <i class="fa-solid fa-triangle-exclamation"></i>&nbsp;
 Relay <strong>{{ nickname }}</strong> (fingerprint: {{ fingerprint }}) has not subscribed to Tor weather service.
+{% endif %}
+{% if error %}
+<i class="fa-solid fa-xmark"></i>&nbsp;
+{{ error }}
 {% endif %}
 {% endblock %}

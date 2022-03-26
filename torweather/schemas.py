@@ -18,8 +18,8 @@ class Notif(enum.Enum):
         os.path.join(current_directory, "res", "messages", "node_down.txt")
     ) as content:
         NODE_DOWN: Mapping[str, str] = {
+            "subject": "[Tor Weather] Node down",
             "message": content.read(),
-            "subject": "[TOR Weather] Node down",
         }
     SECURITY_VULNERABILITY: str
     END_OF_LIFE_VER: str

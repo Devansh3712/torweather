@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from apscheduler.schedulers.blocking import BlockingScheduler
+from apscheduler.schedulers.background import BackgroundScheduler
 from pymongo import MongoClient
 
 from torweather.config import secrets
@@ -11,18 +11,17 @@ from torweather.utils import node_down_duration
 
 class Check:
     def __init__(self):
-        self.__scheduler = BlockingScheduler()
-        self.__scheduler.add_job(self.hourly, trigger="cron", hour=12)
-        self.__scheduler.add_job(self.monthly, trigger="cron", day="last")
+        self.__scheduler = BackgroundScheduler(daemon=True)
+        self.scheduler.add_job(self.hourly, trigger="interval", minutes=60)
+        self.scheduler.add_job(self.monthly, trigger="cron", day="last")
 
     @property
     def scheduler(self):
-        # Check().scheduler.start()
+        """Returns the scheduler object."""
         return self.__scheduler
 
     def hourly(self) -> None:
-        """Checks data of subscribed relays, and sends an email to the relay
-        provider if appropriate conditions aren't met."""
+        """Hourly checks of subscribed relays."""
 
         client = MongoClient(secrets.MONGODB_URI)
         database = client["testtorweather"]
@@ -42,14 +41,15 @@ class Check:
             # "OPERATOR_EVENTS",
         ]
         for notif in notif_types:
-            cursor = collection.find({"notifs": {notif: False}})
-            for data in cursor:
-                relay = Relay(data["fingerprint"])
-                if node_down_duration(relay.data) > 48:
-                    # getattr(Notif, notif) is used to create the enum type of Notif
-                    # using the notification type stored in database.
-                    Email(relay.data, data["email"], getattr(Notif, notif)).send()
-                    relay.update_notif_status(getattr(Notif, notif))
+            cursor = collection.find({f"{notif}.sent": False})
+            if notif == "NODE_DOWN":
+                for data in cursor:
+                    relay = Relay(data["fingerprint"], testing=True)
+                    if node_down_duration(relay.data) > data[notif]["duration"]:
+                        # getattr(Notif, notif) is used to create the enum type of Notif
+                        # using the notification type stored in database.
+                        Email(relay.data, data["email"], getattr(Notif, notif)).send()
+                        relay.update_notif_status(getattr(Notif, notif))
 
     def monthly(self) -> None:
-        raise NotImplementedError
+        ...

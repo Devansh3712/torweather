@@ -21,13 +21,11 @@ class Email(Logger):
 
     Attributes:
         relay_data (RelayData): Data of the relay.
-        email (Sequence[str]): Email(s) of relay provider.
+        email (str): Email(s) of relay provider.
         notif_type (Message): Type of notification to be sent to the provider.
     """
 
-    def __init__(
-        self, relay_data: RelayData, email: Sequence[str], notif_type: Notif
-    ) -> None:
+    def __init__(self, relay_data: RelayData, email: str, notif_type: Notif) -> None:
         """Initializes the Email class and a logger instance."""
         super().__init__(__name__)
         self.relay = relay_data
@@ -48,6 +46,7 @@ class Email(Logger):
             self.__message = self.__message.format(
                 self.relay.nickname,
                 self.relay.fingerprint,
+                Relay(self.relay.fingerprint, testing=True).duration,
                 self.relay.last_seen,
                 utils.node_down_duration(self.relay),
             )
@@ -67,21 +66,20 @@ class Email(Logger):
         Returns:
             bool: True if email is sent succesfully.
         """
-        for email in self.email:
-            # Multipurpose Internet Mail Extension is an internet standard,
-            # encoded file format used by email programs.
-            message = MIMEText(self.message)
-            message["to"] = email
-            message["from"] = f"TOR Weather <{secrets.EMAIL}>"
-            message["subject"] = self.subject
-            try:
-                context = ssl.create_default_context()
-                # Port 465 is used for Secure Sockets Layer (SSL).
-                with smtplib.SMTP_SSL(server, 465, context=context) as smtp_server:
-                    smtp_server.login(secrets.EMAIL, secrets.PASSWORD)
-                    smtp_server.send_message(message)
-                self.logger.info(f"Email sent to {email}.")
-            except:
-                self.logger.error(f"Unable to send email to {email}.")
-                raise EmailSendError(email)
+        # Multipurpose Internet Mail Extension is an internet standard,
+        # encoded file format used by email programs.
+        message = MIMEText(self.message)
+        message["to"] = self.email
+        message["from"] = f"Tor Weather <{secrets.EMAIL}>"
+        message["subject"] = self.subject
+        try:
+            context = ssl.create_default_context()
+            # Port 465 is used for Secure Sockets Layer (SSL).
+            with smtplib.SMTP_SSL(server, 465, context=context) as smtp_server:
+                smtp_server.login(secrets.EMAIL, secrets.PASSWORD)
+                smtp_server.send_message(message)
+            self.logger.info(f"Email sent to {self.email}.")
+        except:
+            self.logger.error(f"Unable to send email to {self.email}.")
+            raise EmailSendError(self.email)
         return True

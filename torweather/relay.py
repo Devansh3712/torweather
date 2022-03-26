@@ -48,6 +48,7 @@ class Relay(Logger):
             "recommended_version",
         ]
         self.__url: str = "https://onionoo.torproject.org/details"
+        self.__validate_fingerprint()
         self.__client = MongoClient(secrets.MONGODB_URI)
         self.__database = (
             self.__client["testtorweather"] if testing else self.__client["torweather"]
@@ -66,14 +67,7 @@ class Relay(Logger):
 
     @property
     def data(self):
-        """Returns data of the relay as a pydantic model."""
-        return self.__fetch_data()
-
-    def __fetch_data(self) -> RelayData:
         """Fetch data of the relay using the onionoo API.
-
-        Raises:
-            InvalidFingerprintError: Relay fingerprint not found on onionoo API.
 
         Returns:
             RelayData: Pydantic model of relay data.
@@ -89,12 +83,48 @@ class Relay(Logger):
                 f"{self.url}?search={self.fingerprint}&fields={','.join(self.__fields)}"
             )
             result = response.json()["relays"]
-            if response.status_code != 200 or not result:
-                raise InvalidFingerprintError(self.fingerprint)
         return RelayData(**result[0])
 
+    @property
+    def duration(self) -> int:
+        if not self.collection.find_one({"fingerprint": self.fingerprint}):
+            raise RelayNotSubscribedError(self.data.nickname, self.fingerprint)
+        notifs: Mapping[str, Any] = self.collection.find_one(
+            {"fingerprint": self.fingerprint}
+        )
+        return notifs["NODE_DOWN"]["duration"]
+
+    @property
+    def email(self) -> str:
+        if not self.collection.find_one({"fingerprint": self.fingerprint}):
+            raise RelayNotSubscribedError(self.data.nickname, self.fingerprint)
+        notifs: Mapping[str, Any] = self.collection.find_one(
+            {"fingerprint": self.fingerprint}
+        )
+        return notifs["email"]
+
+    def __validate_fingerprint(self):
+        """Validate whether the relay fingerprint exists.
+
+        Raises:
+            InvalidFingerprintError: Relay fingerprint not found on onionoo API.
+        """
+        with requests.Session() as session:
+            session.headers = CaseInsensitiveDict(  # type: ignore
+                {
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                    "(KHTML, like Gecko)Chrome/94.0.4606.81 Safari/537.36"
+                }
+            )
+            response = session.get(f"{self.url}?search={self.fingerprint}")
+            if response.status_code != 200:
+                raise InvalidFingerprintError(self.fingerprint)
+            result = response.json()["relays"]
+            if not result:
+                raise InvalidFingerprintError(self.fingerprint)
+
     def subscribe(
-        self, emails: Sequence[str], notifs: Sequence[Notif], duration: int = 48
+        self, email: str, notifs: Sequence[Notif], duration: int = 48
     ) -> bool:
         """Subscribe to the TOR weather service.
 
@@ -102,7 +132,7 @@ class Relay(Logger):
         relay provider and the type of notifications to subscribe are saved.
 
         Args:
-            emails (Sequence[str]): Email(s) of relay provider.
+            email (str): Email of relay provider.
             notifs (Sequence[Notif]): Type(s) of notification(s) to subscribe.
             duration (int): Duration before sending a notification (hours). Defaults to 48.
 
@@ -115,18 +145,17 @@ class Relay(Logger):
         # Validate the email address provided by the relay provider.
         # If the email is in wrong syntax/DNS server doesn't exist
         # it raises an error.
-        for email in emails:
-            try:
-                email_object = validate_email(email)
-            except:
-                raise InvalidEmailError(email)
+        try:
+            email_object = validate_email(email)
+        except:
+            raise InvalidEmailError(email)
         # If the current fingerprint exists in a document in the `torweather`
         # collection.
         if self.collection.find_one({"fingerprint": self.fingerprint}):
             return False
         document: MutableMapping[str, Any] = {
             "fingerprint": self.data.fingerprint,
-            "email": emails,
+            "email": email,
         }
         # Create a dictionary with enum variable name as key and False as value.
         # This dictionary will be used to keep track of notifications sent, thus
@@ -186,6 +215,6 @@ class Relay(Logger):
             )
         self.collection.update_one(
             {"fingerprint": self.fingerprint},
-            {"$set": {f"{notif_type.name}": {"sent": status}}},
+            {"$set": {f"{notif_type.name}.sent": status}},
         )
         return True

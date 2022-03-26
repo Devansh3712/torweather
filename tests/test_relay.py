@@ -20,7 +20,7 @@ test_relays: Sequence[Tuple[str, Sequence[Notif], Mapping[str, str]]] = [
         {"nickname": "CalyxInstitute14", "version_status": "recommended"},
     ),
 ]
-test_email: Sequence[str] = ["myemail@gmail.com"]
+test_email: str = "myemail@gmail.com"
 
 
 @pytest.mark.parametrize("fingerprint, notifs, data", test_relays)

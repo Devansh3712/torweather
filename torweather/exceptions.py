@@ -27,7 +27,7 @@ class InvalidEmailError(Exception):
         self.email = email
 
     def __str__(self) -> str:
-        return f"{self.email} is not a valid email."
+        return f'"{self.email}" is not a valid email.'
 
 
 class InvalidFingerprintError(Exception):
@@ -42,7 +42,7 @@ class InvalidFingerprintError(Exception):
         self.fingerprint = fingerprint
 
     def __str__(self) -> str:
-        return f"{self.fingerprint} is not a valid TOR fingerprint."
+        return f'"{self.fingerprint}" is not a valid TOR fingerprint.'
 
 
 class NotifNotSubscribedError(Exception):
