@@ -1,28 +1,28 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <link rel="icon" type="image/x-icon" href={{ url_for("static", filename="img/favicon.ico") }}>
+        <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='img/favicon.ico') }}">
         <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
-        <link rel="stylesheet" type="text/css" href={{ url_for("static", filename="styles.css") }}>
-        <script src={{ url_for("static", filename="torweather.js") }}></script>
+        <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles.css') }}">
+        <script src="{{ url_for('static', filename='torweather.js') }}"></script>
         <title>{% block title %}{% endblock %}</title>
     </head>
     <body>
         <header>
             <nav class="main-nav">
-                <img class="logo" src={{ url_for("static", filename="img/logo.png") }} height="48">
+                <img class="logo" src="{{ url_for('static', filename='img/logo.png') }}" height="48">
             </nav>
         </header>
         <nav class="side-nav">
             <ul class="side-nav-ul">
                 <li class="side-nav-li">
-                    <a href={{ url_for("home") }}>About</a>
+                    <a href="{{ url_for('home') }}">About</a>
                 </li>
                 <li class="side-nav-li">
-                    <a href={{ url_for("subscribe.main") }}>Subscribe</a>
+                    <a href="{{ url_for('subscribe.main') }}">Subscribe</a>
                 </li>
                 <li class="side-nav-li">
-                    <a href={{ url_for("unsubscribe.main") }}>Unsubscribe</a>
+                    <a href="{{ url_for('unsubscribe.main') }}">Unsubscribe</a>
                 </li>
             </ul>
         </nav>
