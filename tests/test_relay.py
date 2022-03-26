@@ -7,6 +7,8 @@ import pytest
 
 from torweather import Notif
 from torweather import Relay
+from torweather import RelayNotSubscribedError
+from torweather import RelaySubscribedError
 
 test_relays: Sequence[Tuple[str, Sequence[Notif], Mapping[str, str]]] = [
     (
@@ -44,8 +46,8 @@ def test_invalid_subscribe(
     fingerprint: str, notifs: Sequence[Notif], data: Mapping[str, str]
 ):
     global test_email
-    result = Relay(fingerprint, testing=True).subscribe(test_email, notifs)
-    assert result == False
+    with pytest.raises(RelaySubscribedError):
+        result = Relay(fingerprint, testing=True).subscribe(test_email, notifs)
 
 
 @pytest.mark.parametrize("fingerprint, notifs, data", test_relays)
@@ -69,5 +71,5 @@ def test_valid_unsubscribe(
 def test_invalid_unsubscribe(
     fingerprint: str, notifs: Sequence[Notif], data: Mapping[str, str]
 ):
-    result = Relay(fingerprint, testing=True).unsubscribe()
-    assert result == False
+    with pytest.raises(RelayNotSubscribedError):
+        result = Relay(fingerprint, testing=True).unsubscribe()

@@ -42,7 +42,7 @@ class InvalidFingerprintError(Exception):
         self.fingerprint = fingerprint
 
     def __str__(self) -> str:
-        return f'"{self.fingerprint}" is not a valid TOR fingerprint.'
+        return f'"{self.fingerprint}" is not a valid Tor fingerprint.'
 
 
 class NotifNotSubscribedError(Exception):
@@ -77,4 +77,20 @@ class RelayNotSubscribedError(Exception):
         self.fingerprint = fingerprint
 
     def __str__(self) -> str:
-        return f"Relay {self.name} (fingerprint: {self.fingerprint}) has not subscribed to TOR weather service."
+        return f"Relay {self.name} (fingerprint: {self.fingerprint}) has not subscribed to Tor weather service."
+
+
+class RelaySubscribedError(Exception):
+    """Raised when the relay is found in the MongoDB database.
+
+    Attributes:
+        nickname (str): Nickname of the relay.
+        fingerprint (str): Fingerprint of the relay.
+    """
+
+    def __init__(self, nickname: str, fingerprint: str) -> None:
+        self.name = nickname
+        self.fingerprint = fingerprint
+
+    def __str__(self) -> str:
+        return f"Relay {self.name} (fingerprint: {self.fingerprint}) has already subscribed to Tor weather service."

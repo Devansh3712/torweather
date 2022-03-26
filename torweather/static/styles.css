@@ -39,6 +39,7 @@ button {
 
 button:hover {
     background-color: #59316B;
+    cursor: pointer;
 }
 
 input {
@@ -53,6 +54,7 @@ input[type="number"]{
 select {
     font-family: inherit;
     font-size: 11pt;
+    margin-bottom: 3px;
 }
 
 .main-nav {

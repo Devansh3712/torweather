@@ -30,13 +30,6 @@ def main():
                     nickname=relay.data.nickname,
                     fingerprint=fingerprint,
                 )
-            else:
-                return render_template(
-                    "unsubscribe.html",
-                    unsubscribed=False,
-                    nickname=relay.data.nickname,
-                    fingerprint=fingerprint,
-                )
         except InvalidEmailError:
             return render_template(
                 "unsubscribe.html", error="Not a valid email address."

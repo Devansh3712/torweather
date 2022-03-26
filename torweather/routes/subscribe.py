@@ -18,7 +18,8 @@ def main():
     if request.method == "POST":
         email: str = request.form.get("email")
         fingerprint: str = request.form.get("fingerprint")
-        node_down: str = request.form.get("node-down")  # outputs "on" if checked
+        node_down: str = request.form.get("node-down")
+        outdated_ver: str = request.form.get("outdated-ver")
         duration: int = (
             int(request.form.get("duration"))
             if request.form.get("duration") != ""
@@ -28,6 +29,8 @@ def main():
         notifs: Sequence[Notif] = []
         if node_down == "on":
             notifs.append(Notif.NODE_DOWN)
+        if outdated_ver == "on":
+            notifs.append(Notif.OUTDATED_VER)
         if duration_type == "days":
             duration *= 24
         elif duration_type == "weeks":

@@ -1,0 +1,8 @@
+This is a Tor Weather report.
+
+It appears that the Tor relay {0} (fingerprint: {1}) you have been observing is running an {2} version of Tor which is outdated.
+You can download the latest version of Tor at https://www.torproject.org/download/.
+
+
+You can find more information about your Tor relay at:
+https://metrics.torproject.org/rs.html#details/{1}

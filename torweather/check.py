@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+from collections.abc import Sequence
+
 from apscheduler.schedulers.background import BackgroundScheduler
 from pymongo import MongoClient
 
@@ -13,6 +15,7 @@ class Check:
     def __init__(self):
         self.__scheduler = BackgroundScheduler(daemon=True)
         self.scheduler.add_job(self.hourly, trigger="interval", minutes=60)
+        self.scheduler.add_job(self.daily, trigger="cron", hour=0)
         self.scheduler.add_job(self.monthly, trigger="cron", day="last")
 
     @property
@@ -26,11 +29,9 @@ class Check:
         client = MongoClient(secrets.MONGODB_URI)
         database = client["testtorweather"]
         collection = database["subscribers"]
-        notif_types = [
+        notif_types: Sequence[str] = [
             "NODE_DOWN",
             # "SECURITY_VULNERABILITY",
-            # "END_OF_LIFE_VER",
-            # "OUTDATED_VER",
             # "DNS_FAILURE",
             # "FLAG_LOST",
             # "DETECT_ISSUES",
@@ -42,14 +43,34 @@ class Check:
         ]
         for notif in notif_types:
             cursor = collection.find({f"{notif}.sent": False})
-            if notif == "NODE_DOWN":
-                for data in cursor:
-                    relay = Relay(data["fingerprint"], testing=True)
+            for data in cursor:
+                relay = Relay(data["fingerprint"], testing=True)
+                if notif == "NODE_DOWN":
                     if node_down_duration(relay.data) > data[notif]["duration"]:
                         # getattr(Notif, notif) is used to create the enum type of Notif
                         # using the notification type stored in database.
                         Email(relay.data, data["email"], getattr(Notif, notif)).send()
                         relay.update_notif_status(getattr(Notif, notif))
+                else:
+                    Email(relay.data, data["email"], getattr(Notif, notif)).send()
+                    relay.update_notif_status(getattr(Notif, notif))
+
+    def daily(self) -> None:
+        """Daily checks of subscribed relays."""
+
+        client = MongoClient(secrets.MONGODB_URI)
+        database = client["testtorweather"]
+        collection = database["subscribers"]
+        notif_types: Sequence[str] = [
+            "OUTDATED_VER",
+            # "END_OF_LIFE_VER"
+        ]
+        for notif in notif_types:
+            cursor = collection.find({f"{notif}.sent": False})
+            for data in cursor:
+                relay = Relay(data["fingerprint"], testing=True)
+                Email(relay.data, data["email"], getattr(Notif, notif)).send()
+                relay.update_notif_status(getattr(Notif, notif))
 
     def monthly(self) -> None:
         ...
