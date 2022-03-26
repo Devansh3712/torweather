@@ -1,1 +1,1 @@
-web: gunicorn torweather.app:app
+web: gunicorn torweather.app:app --bind 0.0.0.0:$PORT
