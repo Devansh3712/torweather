@@ -1,16 +1,16 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <link rel="icon" type="image/x-icon" href="./static/img/favicon.ico">
+        <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='img/favicon.ico') }}">
         <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
-        <link rel="stylesheet" type="text/css" href="./static/styles.css">
-        <script src="./static/torweather.js"></script>
+        <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles.css') }}">
+        <script src="{{ url_for('static', filename='torweather.js') }}"></script>
         <title>{% block title %}{% endblock %}</title>
     </head>
     <body>
         <header>
             <nav class="main-nav">
-                <img class="logo" src="./static/img/logo.png" height="48">
+                <img class="logo" src="{{ url_for('static', filename='img/logo.png') }}" height="48">
             </nav>
         </header>
         <nav class="side-nav">
