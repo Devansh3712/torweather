@@ -34,5 +34,5 @@ if __name__ == "__main__":
     app.register_blueprint(subscribe, url_prefix="/subscribe")
     app.register_blueprint(unsubscribe, url_prefix="/unsubscribe")
     port = int(os.environ.get("PORT", 5000))
-    app.run(debug=True)
-    # app.run(host="0.0.0.0", port=port)
+    # app.run(debug=True)
+    app.run(host="0.0.0.0", port=port)
