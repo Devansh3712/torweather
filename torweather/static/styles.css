@@ -55,7 +55,7 @@ input[type="number"]{
 select {
     font-family: inherit;
     font-size: 11pt;
-    margin-bottom: 3px;
+    margin-bottom: 8px;
 }
 
 .main-nav {
