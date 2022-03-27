@@ -12,7 +12,10 @@ from torweather.utils import node_down_duration
 
 
 class Check:
+    """Class for checking and updating relay notification status."""
+
     def __init__(self):
+        """Initializes Check class with a BackgroundScheduler object."""
         self.__scheduler = BackgroundScheduler(daemon=True)
         self.scheduler.add_job(self.hourly, trigger="interval", minutes=60)
         self.scheduler.add_job(self.daily, trigger="cron", hour=0)

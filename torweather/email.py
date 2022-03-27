@@ -6,7 +6,6 @@ from email.mime.text import MIMEText
 
 import dotenv
 
-import torweather.utils as utils
 from torweather.config import secrets
 from torweather.exceptions import EmailSendError
 from torweather.logger import Logger
@@ -41,14 +40,13 @@ class Email(Logger):
 
     @property
     def message(self) -> str:
-        """Returns the formatted content of message with relevant data of the TOR relay."""
+        """Returns the formatted content of message with relevant data of the Tor relay."""
         if self.type == Notif.NODE_DOWN:
             self.__message = self.__message.format(
                 self.relay.nickname,
                 self.relay.fingerprint,
                 Relay(self.relay.fingerprint, testing=True).duration,
                 self.relay.last_seen,
-                utils.node_down_duration(self.relay),
             )
         elif self.type == Notif.OUTDATED_VER:
             self.__message = self.__message.format(
@@ -59,7 +57,7 @@ class Email(Logger):
         return self.__message
 
     def send(self, server: str = "smtp.gmail.com") -> bool:
-        """Send an email to a TOR relay provider using SMTP. For
+        """Send an email to a Tor relay provider using SMTP. For
         the SMTP server, either localhost or APIs like Mailgun can
         be used.
 
