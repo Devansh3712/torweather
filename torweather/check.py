@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+"""Module for checking relay data, sending emails and upating notification status
+in the background using apscheduler."""
 from collections.abc import Sequence
 
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -30,7 +32,7 @@ class Check:
         """Hourly checks of subscribed relays."""
 
         client = MongoClient(secrets.MONGODB_URI)
-        database = client["testtorweather"]
+        database = client["torweather"]
         collection = database["subscribers"]
         notif_types: Sequence[str] = [
             "NODE_DOWN",
@@ -38,16 +40,12 @@ class Check:
             # "DNS_FAILURE",
             # "FLAG_LOST",
             # "DETECT_ISSUES",
-            # "SUGGESTIONS",
-            # "TOP_LIST",
-            # "DATA",
             # "REQUIREMENTS",
-            # "OPERATOR_EVENTS",
         ]
         for notif in notif_types:
             cursor = collection.find({f"{notif}.sent": False})
             for data in cursor:
-                relay = Relay(data["fingerprint"], testing=True)
+                relay = Relay(data["fingerprint"])
                 if notif == "NODE_DOWN":
                     if node_down_duration(relay.data) > data[notif]["duration"]:
                         # getattr(Notif, notif) is used to create the enum type of Notif
@@ -62,24 +60,34 @@ class Check:
         """Daily checks of subscribed relays."""
 
         client = MongoClient(secrets.MONGODB_URI)
-        database = client["testtorweather"]
+        database = client["torweather"]
         collection = database["subscribers"]
         notif_types: Sequence[str] = [
             "OUTDATED_VER",
-            # "END_OF_LIFE_VER"
+            # "END_OF_LIFE_VER",
+            # "OPERATOR_EVENTS",
         ]
         for notif in notif_types:
             cursor = collection.find({f"{notif}.sent": False})
             for data in cursor:
-                relay = Relay(data["fingerprint"], testing=True)
+                relay = Relay(data["fingerprint"])
                 if notif == "OUTDATED_VER":
                     if relay.data.version_status == "unrecommended":
                         Email(relay.data, data["email"], getattr(Notif, notif)).send()
                         relay.update_notif_status(getattr(Notif, notif))
-                else:
+                elif notif == "END_OF_LIFE_VER":
                     if relay.data.version_status == "obsolete":
                         Email(relay.data, data["email"], getattr(Notif, notif)).send()
                         relay.update_notif_status(getattr(Notif, notif))
 
     def monthly(self) -> None:
-        ...
+        """Monthly checks of subscribed relays."""
+
+        client = MongoClient(secrets.MONGODB_URI)
+        database = client["torweather"]
+        collection = database["subscribers"]
+        notif_types: Sequence[str] = [
+            # "TOP_LIST",
+            # "DATA",
+            # "SUGGESTIONS",
+        ]

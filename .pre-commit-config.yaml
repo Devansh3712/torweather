@@ -33,18 +33,8 @@ repos:
 
 - repo: local
   hooks:
-  # - id: pytest
-  #   name: pytest
-  #   entry: make test
-  #   language: system
-  #   types: [python]
   - id: requirements
     name: make-requirements
     entry: make reqs
-    language: system
-    types: [python]
-  - id: clean
-    name: clean
-    entry: make clean
     language: system
     types: [python]

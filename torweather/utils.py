@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+"""Module for utility functions used by torweather modules."""
 from collections.abc import Mapping
 from datetime import datetime
 

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+"""Module for parsing and validating environment variables."""
 from pydantic import BaseSettings
 
 

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+"""Module for initializing a custom logger for torweather modules."""
 import logging
 import os
 

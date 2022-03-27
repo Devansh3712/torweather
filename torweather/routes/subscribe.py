@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+"""Module for handling the "/subscribe" endpoint of flask server."""
 from collections.abc import Sequence
 
 from flask import Blueprint
@@ -15,6 +16,7 @@ subscribe = Blueprint("subscribe", __name__)
 
 @subscribe.route("/", methods=["GET", "POST"], strict_slashes=False)
 def main():
+    """Returns rendered "subscribe.html" template according to constraints."""
     if request.method == "POST":
         email: str = request.form.get("email")
         fingerprint: str = request.form.get("fingerprint")
@@ -29,21 +31,21 @@ def main():
         notifs: Sequence[Notif] = []
         if node_down == "on":
             notifs.append(Notif.NODE_DOWN)
+            if duration_type == "days":
+                duration *= 24
+            elif duration_type == "weeks":
+                duration *= 7 * 24
+            elif duration_type == "months":
+                duration *= 30 * 24
         if outdated_ver == "on":
             notifs.append(Notif.OUTDATED_VER)
-        if duration_type == "days":
-            duration *= 24
-        elif duration_type == "weeks":
-            duration *= 7 * 24
-        elif duration_type == "months":
-            duration *= 30 * 24
         try:
             if not notifs:
                 return render_template(
                     "subscribe.html",
                     error="Choose at least one notification to subscribe.",
                 )
-            relay = Relay(fingerprint, testing=True)
+            relay = Relay(fingerprint)
             result: bool = relay.subscribe(email, notifs, duration)
             if result:
                 return render_template(
