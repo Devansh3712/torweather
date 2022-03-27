@@ -7,37 +7,43 @@ from datetime import datetime
 
 from pydantic import BaseModel
 
-current_directory = os.path.dirname(os.path.realpath(__file__))
+
+def email_content(subject: str, file_name: str) -> Mapping[str, str]:
+    """Create a dictionary of subject and message of email.
+
+    Args:
+        subject (str): Subject of the email.
+        file_name (str): Name of file with email body.
+
+    Returns:
+        Mapping[str, str]: Email content.
+    """
+    current_directory = os.path.dirname(os.path.realpath(__file__))
+    with open(os.path.join(current_directory, "messages", file_name)) as file:
+        content: Mapping[str, str] = {
+            "subject": f"[Tor Weather] {subject}",
+            "message": file.read(),
+        }
+    return content
 
 
 class Notif(enum.Enum):
-    """Enum for types of messages for TOR weather."""
+    """Enum for types of notifications for Tor weather."""
 
-    global current_directory
-    with open(
-        os.path.join(current_directory, "messages", "node_down.txt")
-    ) as node_down:
-        NODE_DOWN: Mapping[str, str] = {
-            "subject": "[Tor Weather] Node down",
-            "message": node_down.read(),
-        }
-    SECURITY_VULNERABILITY: str
-    END_OF_LIFE_VER: str
-    with open(
-        os.path.join(current_directory, "messages", "outdated_version.txt")
-    ) as outdated_ver:
-        OUTDATED_VER: Mapping[str, str] = {
-            "subject": "[Tor Weather] Node out of date",
-            "message": outdated_ver.read(),
-        }
-    DNS_FAILURE: str
-    FLAG_LOST: str
-    DETECT_ISSUES: str
-    SUGGESTIONS: str
-    TOP_LIST: str
-    DATA: str
-    REQUIREMENTS: str
-    OPERATOR_EVENTS: str
+    NODE_DOWN: Mapping[str, str] = email_content("Node down", "node_down.txt")
+    SECURITY_VULNERABILITY: Mapping[str, str]
+    END_OF_LIFE_VER: Mapping[str, str]
+    OUTDATED_VER: Mapping[str, str] = email_content(
+        "Node out of date", "outdated_version.txt"
+    )
+    DNS_FAILURE: Mapping[str, str]
+    FLAG_LOST: Mapping[str, str]
+    DETECT_ISSUES: Mapping[str, str]
+    SUGGESTIONS: Mapping[str, str]
+    TOP_LIST: Mapping[str, str]
+    DATA: Mapping[str, str]
+    REQUIREMENTS: Mapping[str, str]
+    OPERATOR_EVENTS: Mapping[str, str]
 
 
 class RelayData(BaseModel):

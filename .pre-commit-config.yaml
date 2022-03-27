@@ -30,3 +30,16 @@ repos:
   hooks:
   - id: mypy
     args: [--ignore-missing-imports]
+
+- repo: local
+  hooks:
+  - id: pytest
+    name: pytest
+    entry: make test
+    language: system
+    types: [python]
+  - id: requirements
+    name: make-requirements
+    entry: make reqs
+    language: system
+    types: [python]
