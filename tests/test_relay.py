@@ -6,6 +6,7 @@ from typing import Tuple
 import pytest
 
 from torweather import Notif
+from torweather import NotifNotSubscribedError
 from torweather import Relay
 from torweather import RelayNotSubscribedError
 from torweather import RelaySubscribedError
@@ -13,12 +14,12 @@ from torweather import RelaySubscribedError
 test_relays: Sequence[Tuple[str, Sequence[Notif], Mapping[str, str]]] = [
     (
         "000A10D43011EA4928A35F610405F92B4433B4DC",
-        [Notif.NODE_DOWN],
+        [Notif.NODE_DOWN, Notif.OUTDATED_VER],
         {"nickname": "seele", "version_status": "recommended"},
     ),
     (
         "0011BD2485AD45D984EC4159C88FC066E5E3300E",
-        [Notif.NODE_DOWN],
+        [Notif.NODE_DOWN, Notif.OUTDATED_VER],
         {"nickname": "CalyxInstitute14", "version_status": "recommended"},
     ),
 ]
@@ -51,12 +52,35 @@ def test_invalid_subscribe(
 
 
 @pytest.mark.parametrize("fingerprint, notifs, data", test_relays)
+def test_valid_unsubscribe_single(
+    fingerprint: str, notifs: Sequence[Notif], data: Mapping[str, str]
+):
+    result = Relay(fingerprint, testing=True).unsubscribe_single(notifs[1])
+    assert result == True
+
+
+@pytest.mark.parametrize("fingerprint, notifs, data", test_relays)
+def test_invalid_unsubscribe_single(
+    fingerprint: str, notifs: Sequence[Notif], data: Mapping[str, str]
+):
+    with pytest.raises(NotifNotSubscribedError):
+        result = Relay(fingerprint, testing=True).unsubscribe_single(notifs[1])
+
+
+@pytest.mark.parametrize("fingerprint, notifs, data", test_relays)
 def test_valid_update_notif_status(
     fingerprint: str, notifs: Sequence[Notif], data: Mapping[str, str]
 ):
-    for notif_type in notifs:
-        result = Relay(fingerprint, testing=True).update_notif_status(notif_type)
-        assert result == True
+    result = Relay(fingerprint, testing=True).update_notif_status(notifs[0])
+    assert result == True
+
+
+@pytest.mark.parametrize("fingerprint, notifs, data", test_relays)
+def test_invalid_update_notif_status(
+    fingerprint: str, notifs: Sequence[Notif], data: Mapping[str, str]
+):
+    with pytest.raises(NotifNotSubscribedError):
+        result = Relay(fingerprint, testing=True).unsubscribe_single(notifs[1])
 
 
 @pytest.mark.parametrize("fingerprint, notifs, data", test_relays)

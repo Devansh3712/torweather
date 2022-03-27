@@ -43,3 +43,8 @@ repos:
     entry: make reqs
     language: system
     types: [python]
+  - id: clean
+    name: clean
+    entry: make clean
+    language: system
+    types: [python]

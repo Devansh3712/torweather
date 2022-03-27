@@ -136,7 +136,7 @@ torweather/res/token.json
 Makefile
 
 # Logs directory
-torweather/logs
+logs
 
 # VSCode settings
 .vscode
