@@ -13,7 +13,7 @@
     <br>
     <label for="duration" class="duration">How long before we send a notification?</label>
     <br>
-    <input type="number" name="duration" min="1" max="4380" placeholder="Default value is 48" size="30">
+    <input type="number" name="duration" min="1" max="4380" placeholder="Default value is 48">
     <select name="duration-type">
         <option value="hours" selected>Hours</option>
         <option value="days">Days</option>
@@ -23,20 +23,23 @@
     <br>
     <input type="checkbox" name="outdated-ver">
     <label for="outdated-ver">Email me when relay is running an outdated version of Tor</label>
+    <br>
+    <input type="checkbox" name="select-all" onclick="toggleAll(this)">
+    <label for="select-all">Subscribe to all notifications</label>
     <br><br>
     <button type="submit">Subscribe</button>
     <br>
 </form>
 <br>
 {% if subscribed == True %}
-<i class="fa-solid fa-check"></i>&nbsp;
-Relay <strong>{{ nickname }}</strong> (fingerprint: {{ fingerprint }}) successfully subscribed to Tor weather service.
+    <i class="fa-solid fa-check"></i>&nbsp;
+    Relay <strong>{{ nickname }}</strong> (fingerprint: {{ fingerprint }}) successfully subscribed to Tor weather service.
 {% elif subscribed == False %}
-<i class="fa-solid fa-triangle-exclamation"></i>&nbsp;
-Relay <strong>{{ nickname }}</strong> (fingerprint: {{ fingerprint }}) has already subscribed to Tor weather service.
+    <i class="fa-solid fa-triangle-exclamation"></i>&nbsp;
+    Relay <strong>{{ nickname }}</strong> (fingerprint: {{ fingerprint }}) has already subscribed to Tor weather service.
 {% endif %}
 {% if error %}
-<i class="fa-solid fa-xmark"></i>&nbsp;
-{{ error }}
+    <i class="fa-solid fa-xmark"></i>&nbsp;
+    {{ error }}
 {% endif %}
 {% endblock %}

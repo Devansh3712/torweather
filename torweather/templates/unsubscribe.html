@@ -8,18 +8,30 @@
     <label for="email">Confirm Email:</label>
     <input type="email" name="email" size="30">
     <br><br>
+    <label for="unsubscribe-notifs">Notifications to unsubscribe:&nbsp;</label>
+    <select name="unsubscribe-notifs">
+        <option value="all" selected>All</option>
+        <option value="node-down">Node down</option>
+        <option value="outdated-ver">Outdated Tor version</option>
+    </select>
+    <br><br>
     <button type="submit">Unsubscribe</button>
 </form>
 <br>
 {% if unsubscribed == True %}
-<i class="fa-solid fa-check"></i>&nbsp;
-Relay <strong>{{ nickname }}</strong> (fingerprint: {{ fingerprint }}) successfully unsubscribed from Tor weather service.
+    {% if single == True %}
+        <i class="fa-solid fa-check"></i>&nbsp;
+        Relay <strong>{{ nickname }}</strong> (fingerprint: {{ fingerprint }}) successfully unsubscribed <strong>{{ notif }}</strong> notification.
+    {% else %}
+        <i class="fa-solid fa-check"></i>&nbsp;
+        Relay <strong>{{ nickname }}</strong> (fingerprint: {{ fingerprint }}) successfully unsubscribed from Tor weather service.
+    {% endif %}
 {% elif unsubscribed == False %}
-<i class="fa-solid fa-triangle-exclamation"></i>&nbsp;
-Relay <strong>{{ nickname }}</strong> (fingerprint: {{ fingerprint }}) has not subscribed to Tor weather service.
+    <i class="fa-solid fa-triangle-exclamation"></i>&nbsp;
+    Relay <strong>{{ nickname }}</strong> (fingerprint: {{ fingerprint }}) has not subscribed to Tor weather service.
 {% endif %}
 {% if error %}
-<i class="fa-solid fa-xmark"></i>&nbsp;
-{{ error }}
+    <i class="fa-solid fa-xmark"></i>&nbsp;
+    {{ error }}
 {% endif %}
 {% endblock %}

@@ -217,10 +217,18 @@ class Relay(Logger):
             raise NotifNotSubscribedError(
                 self.data.nickname, self.fingerprint, notif_type
             )
-        self.collection.update_one(
-            {"fingerprint": self.fingerprint},
-            {"$unset": {notif_type.name: 1}},
-        )
+        # If only a single notification is subscribed and the user
+        # explicitly chooses to unsubscribe from it, delete the whole
+        # relay from the database.
+        if len(document) > 4:
+            # The length of document should be greater than 4 as
+            # every document includes _id, fingerprint, email fields.
+            self.collection.update_one(
+                {"fingerprint": self.fingerprint},
+                {"$unset": {notif_type.name: 1}},
+            )
+        else:
+            self.unsubscribe()
         return True
 
     def update_notif_status(self, notif_type: Notif, status: bool = True) -> bool:

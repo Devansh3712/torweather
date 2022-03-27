@@ -44,7 +44,7 @@ def main():
                     error="Choose at least one notification to subscribe.",
                 )
             relay = Relay(fingerprint, testing=True)
-            result = relay.subscribe(email, notifs, duration)
+            result: bool = relay.subscribe(email, notifs, duration)
             if result:
                 return render_template(
                     "subscribe.html",

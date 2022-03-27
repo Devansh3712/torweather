@@ -72,8 +72,14 @@ class Check:
             cursor = collection.find({f"{notif}.sent": False})
             for data in cursor:
                 relay = Relay(data["fingerprint"], testing=True)
-                Email(relay.data, data["email"], getattr(Notif, notif)).send()
-                relay.update_notif_status(getattr(Notif, notif))
+                if notif == "OUTDATED_VER":
+                    if relay.data.version_status == "unrecommended":
+                        Email(relay.data, data["email"], getattr(Notif, notif)).send()
+                        relay.update_notif_status(getattr(Notif, notif))
+                else:
+                    if relay.data.version_status == "obsolete":
+                        Email(relay.data, data["email"], getattr(Notif, notif)).send()
+                        relay.update_notif_status(getattr(Notif, notif))
 
     def monthly(self) -> None:
         ...
