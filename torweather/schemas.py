@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+"""Module for enums and schemas used by torweather modules."""
 import enum
 import os
 from collections.abc import Mapping

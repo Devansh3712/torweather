@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+"""Module for sending emails to relay providers using SMTP."""
 import smtplib
 import ssl
 from collections.abc import Sequence

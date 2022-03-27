@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+"""Module for custom exceptions raised by torweather modules."""
 from torweather.schemas import Notif
 
 

@@ -1,4 +1,4 @@
-name: Heroku Deploy
+name: Heroku
 
 on:
   push:
@@ -7,7 +7,6 @@ on:
   pull_request:
     branches:
       - main
-  workflow_dispatch:
 
 jobs:
   build:

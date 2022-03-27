@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+"""Module for handling the "/unsubscribe" endpoint of flask server."""
+import os
+
+from bs4 import BeautifulSoup
 from flask import Blueprint
 from flask import render_template
 from flask import request
@@ -15,12 +19,13 @@ unsubscribe = Blueprint("unsubscribe", __name__)
 
 @unsubscribe.route("/", methods=["GET", "POST"], strict_slashes=False)
 def main():
+    """Returns rendered "unsubscribe.html" template according to constraints."""
     if request.method == "POST":
         fingerprint: str = request.form.get("fingerprint")
         email: str = request.form.get("email")
         notif_type: str = request.form.get("unsubscribe-notifs")
         try:
-            relay = Relay(fingerprint, testing=True)
+            relay = Relay(fingerprint)
             if email != relay.email:
                 return render_template(
                     "unsubscribe.html", error="Email not subscribed by relay."
@@ -35,17 +40,25 @@ def main():
                         fingerprint=fingerprint,
                     )
             else:
-                notif_name: str = notif_type.replace("-", "_").upper()
-                notif: Notif = getattr(Notif, notif_name)
+                notif: Notif = getattr(Notif, notif_type.replace("-", "_").upper())
                 result: bool = relay.unsubscribe_single(notif)  # type: ignore
                 if result:
+                    current_directory: str = os.path.dirname(os.path.realpath(__file__))
+                    parent_directory: str = os.path.dirname(current_directory)
+                    with open(
+                        os.path.join(parent_directory, "templates", "unsubscribe.html")
+                    ) as file:
+                        page_data: str = file.read()
+                    # Use BeautifulSoup to get the name of the single notification
+                    # that was unsubscribed.
+                    soup = BeautifulSoup(page_data, features="lxml")
                     return render_template(
                         "unsubscribe.html",
                         unsubscribed=True,
                         nickname=relay.data.nickname,
                         fingerprint=fingerprint,
                         single=True,
-                        notif=notif_name,
+                        notif=soup.find("option", value=notif_type).text,
                     )
         except InvalidEmailError:
             return render_template(

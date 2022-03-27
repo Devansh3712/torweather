@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+"""Module for creating and running flask server."""
 import os
 
 from flask import Flask

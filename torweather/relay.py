@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+"""Module for fetching, validating relay data and subscribe/unsubscribe them to
+Tor Weather service."""
 from collections.abc import Mapping
 from collections.abc import MutableMapping
 from collections.abc import Sequence
